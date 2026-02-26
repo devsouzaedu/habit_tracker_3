@@ -263,30 +263,37 @@
         let h = '';
         // header row
         h += '<div class="grid-row header"><div class="cell"></div>';
+        h += '<div class="grid-days-scroll">';
         days.forEach(d => {
             const t = same(d, td);
-            h += `<div class="cell${t ? ' is-today' : ''}"><span>${DAYS[d.getDay()]}</span><span class="dn">${d.getDate()}</span></div>`;
+            h += `<div class="cell day-cell${t ? ' is-today' : ''}"><span>${DAYS[d.getDay()]}</span><span class="dn">${d.getDate()}</span></div>`;
         });
+        h += '</div>';
         h += '<div class="cell"></div></div>';
 
         // habit rows
         habits.forEach(hab => {
             const streak = calcStreak(hab.id, rec);
+            const trend = calcTrend(hab.id, rec);
             h += `<div class="grid-row habit">`;
             h += `<div class="habit-info">`;
             h += `<div class="h-icon" style="border:1px solid ${hab.color || 'var(--brd)'}">${hab.icon}</div>`;
-            h += `<div><div class="h-name">${esc(hab.name)}</div>`;
-            h += `<div class="h-streak">${streak > 0 ? '🔥 ' + streak + 'd' : '—'}</div></div></div>`;
+            h += `<div class="h-meta">`;
+            h += `<div class="h-name-row"><span class="h-name">${esc(hab.name)}</span>${trendIcon(trend)}</div>`;
+            h += `<div class="h-badges">${streakBadge(streak)}</div>`;
+            h += `</div></div>`;
 
+            h += '<div class="grid-days-scroll">';
             days.forEach(d => {
                 const t = same(d, td);
                 const key = rk(hab.id, d);
                 const s = rec[key] || null;
                 let cls = 's-btn', txt = '—';
-                if (s === 'win') { cls += ' w'; txt = 'Win'; }
-                else if (s === 'fail') { cls += ' f'; txt = 'Fail'; }
-                h += `<div class="cell${t ? ' is-today' : ''}"><button class="${cls}" data-h="${hab.id}" data-d="${dk(d)}">${txt}</button></div>`;
+                if (s === 'win') { cls += ' w'; txt = '✓'; }
+                else if (s === 'fail') { cls += ' f'; txt = '✗'; }
+                h += `<div class="cell day-cell${t ? ' is-today' : ''}"><button class="${cls}" data-h="${hab.id}" data-d="${dk(d)}">${txt}</button></div>`;
             });
+            h += '</div>';
 
             h += `<div class="del-cell"><button class="row-del" data-del="${hab.id}" title="Excluir">✕</button></div>`;
             h += `</div>`;
@@ -373,16 +380,19 @@
             const key = rk(hab.id, selDay);
             const s = rec[key] || null;
             const streak = calcStreak(hab.id, rec);
+            const trend = calcTrend(hab.id, rec);
             let toggleCls = 'mobile-habit-toggle';
             let toggleTxt = '—';
             if (s === 'win') { toggleCls += ' w'; toggleTxt = '✓ Win'; }
             else if (s === 'fail') { toggleCls += ' f'; toggleTxt = '✗ Fail'; }
 
-            html += `<div class="mobile-habit-card">`;
+            html += `<div class="mobile-habit-card${s === 'win' ? ' card-win' : s === 'fail' ? ' card-fail' : ''}">`;
             html += `<div class="mobile-habit-left">`;
             html += `<div class="mobile-habit-icon" style="border:1px solid ${hab.color || 'var(--brd)'}">${hab.icon}</div>`;
-            html += `<div><div class="mobile-habit-name">${esc(hab.name)}</div>`;
-            html += `<div class="mobile-habit-streak">${streak > 0 ? '🔥 ' + streak + 'd' : ''}</div></div></div>`;
+            html += `<div class="mobile-habit-meta">`;
+            html += `<div class="mobile-habit-name-row"><span class="mobile-habit-name">${esc(hab.name)}</span>${trendIcon(trend)}</div>`;
+            html += `<div class="mobile-habit-badges">${streakBadge(streak)}</div>`;
+            html += `</div></div>`;
             html += `<button class="${toggleCls}" data-h="${hab.id}" data-d="${dk(selDay)}">${toggleTxt}</button>`;
             html += `<button class="mobile-habit-del" data-del="${hab.id}">✕</button>`;
             html += `</div>`;
@@ -599,6 +609,44 @@
             else cur = 1;
         }
         return best;
+    }
+
+    // ==================== GAMIFICATION HELPERS ====================
+    function calcTrend(hid, rec) {
+        // Compare last 7 days vs previous 7 days win rate
+        const td = now();
+        let recentWins = 0, recentTotal = 0, prevWins = 0, prevTotal = 0;
+        for (let i = 0; i < 7; i++) {
+            const d1 = addD(td, -i);
+            const k1 = rk(hid, d1);
+            if (rec[k1]) { recentTotal++; if (rec[k1] === 'win') recentWins++; }
+            const d2 = addD(td, -(i + 7));
+            const k2 = rk(hid, d2);
+            if (rec[k2]) { prevTotal++; if (rec[k2] === 'win') prevWins++; }
+        }
+        const recentRate = recentTotal > 0 ? recentWins / recentTotal : 0;
+        const prevRate = prevTotal > 0 ? prevWins / prevTotal : 0;
+        if (recentTotal < 2 && prevTotal < 2) return 'neutral';
+        if (recentRate > prevRate + 0.05) return 'up';
+        if (recentRate < prevRate - 0.05) return 'down';
+        return 'neutral';
+    }
+
+    function trendIcon(trend) {
+        if (trend === 'up') return '<span class="trend-icon trend-up" title="Tendência subindo">▲</span>';
+        if (trend === 'down') return '<span class="trend-icon trend-down" title="Tendência descendo">▼</span>';
+        return '<span class="trend-icon trend-neutral" title="Estável">◆</span>';
+    }
+
+    function streakBadge(streak) {
+        if (streak <= 0) return '';
+        let level = '', cls = 'streak-badge';
+        if (streak >= 30) { level = 'LENDÁRIO'; cls += ' streak-legendary'; }
+        else if (streak >= 21) { level = 'ÉPICO'; cls += ' streak-epic'; }
+        else if (streak >= 14) { level = 'RARO'; cls += ' streak-rare'; }
+        else if (streak >= 7) { level = 'BOM'; cls += ' streak-good'; }
+        else { level = streak + 'd'; cls += ' streak-normal'; }
+        return `<span class="${cls}">🔥 ${streak}d${level && streak >= 7 ? ' · ' + level : ''}</span>`;
     }
 
     // ==================== HABIT MODAL ====================
