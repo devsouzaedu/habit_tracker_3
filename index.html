@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0b0b0f">
+    <title>Habit Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=3">
+</head>
+
+<body>
+
+    <!-- ===== LOGIN ===== -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <div class="login-brand">
+                <div class="login-mark">HT</div>
+                <h1>Habit Tracker</h1>
+                <p>Sistema de Controle Pessoal</p>
+            </div>
+            <form id="login-form" class="login-form" onsubmit="return false">
+                <label for="login-pw">Senha</label>
+                <input type="password" id="login-pw" class="input" placeholder="••••••" autocomplete="off" autofocus>
+                <button type="submit" id="login-btn" class="btn-red">Entrar</button>
+                <span id="login-err" class="err-msg"></span>
+                <span class="hint">Senha padrão: <b>1234</b></span>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== APP ===== -->
+    <div id="app" class="app hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">HT</div>
+            <nav class="sidebar-nav">
+                <button class="sidebar-btn active" data-view="tracker" title="Tracker">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                    </svg>
+                    <span>Tracker</span>
+                </button>
+                <button class="sidebar-btn" data-view="notes" title="Notas">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    <span>Notas</span>
+                </button>
+                <button class="sidebar-btn" data-view="finance" title="Finanças">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23" />
+                        <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                    </svg>
+                    <span>Finanças</span>
+                </button>
+                <button class="sidebar-btn" data-view="dashboard" title="Dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10" />
+                        <path d="M12 20V4" />
+                        <path d="M6 20v-6" />
+                    </svg>
+                    <span>Dashboard</span>
+                </button>
+            </nav>
+            <button id="logout-btn" class="sidebar-btn logout" title="Sair">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Sair</span>
+            </button>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-wrap">
+
+            <!-- TOP BAR -->
+            <header class="topbar">
+                <span class="topbar-title" id="topbar-title">Tracker</span>
+                <span class="topbar-date" id="topbar-date"></span>
+            </header>
+
+            <!-- ===== TRACKER ===== -->
+            <section id="tracker-view" class="view">
+                <div class="toolbar">
+                    <div class="week-nav">
+                        <button id="prev-week" class="btn-icon" title="Semana anterior">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                        </button>
+                        <span id="week-range" class="week-range-text"></span>
+                        <button id="next-week" class="btn-icon" title="Próxima semana">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                        </button>
+                        <button id="today-btn" class="btn-sm">Hoje</button>
+                    </div>
+                    <button id="add-habit-btn" class="btn-red-outline">+ Novo Hábito</button>
+                </div>
+
+                <div class="progress-chart-card card">
+                    <div class="card-head">
+                        <span class="card-title">📈 Progresso Geral dos Hábitos</span>
+                        <span class="progress-subtitle" id="progress-subtitle">Últimos 30 dias</span>
+                    </div>
+                    <div class="progress-chart-wrap"><canvas id="progress-canvas"></canvas></div>
+                </div>
+
+                <div class="tracker-card">
+                    <div id="tracker-grid" class="tracker-grid"></div>
+                    <div id="tracker-empty" class="empty-msg hidden">
+                        <p>Nenhum hábito cadastrado</p>
+                        <span>Clique em <b>+ Novo Hábito</b> para começar</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== NOTES ===== -->
+            <section id="notes-view" class="view hidden">
+                <div class="toolbar">
+                    <span class="toolbar-label">Suas notas</span>
+                    <button id="add-note-btn" class="btn-red-outline">+ Nova Nota</button>
+                </div>
+                <div id="notes-empty" class="empty-msg">
+                    <p>Nenhuma nota ainda</p>
+                    <span>Crie notas para organizar suas ideias</span>
+                </div>
+                <div id="notes-grid" class="notes-grid"></div>
+            </section>
+
+            <!-- ===== FINANCE ===== -->
+            <section id="finance-view" class="view hidden">
+                <div class="balance-hero">
+                    <span class="balance-label">Saldo Guardado</span>
+                    <span class="balance-amount" id="balance-amount">R$ 0,00</span>
+                </div>
+
+                <div class="fin-form card">
+                    <div class="fin-form-row">
+                        <input type="number" id="fin-val" class="input" placeholder="Valor" step="0.01" min="0">
+                        <input type="text" id="fin-desc" class="input" placeholder="Descrição (opcional)">
+                        <button id="fin-in-btn" class="btn-green">+ Entrada</button>
+                        <button id="fin-out-btn" class="btn-fail">− Saída</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <span class="card-title">Histórico</span>
+                    </div>
+                    <div id="fin-log"></div>
+                    <div id="fin-empty" class="empty-msg-sm">Nenhuma movimentação</div>
+                </div>
+            </section>
+
+            <!-- ===== DASHBOARD ===== -->
+            <section id="dashboard-view" class="view hidden">
+                <div class="toolbar">
+                    <span class="toolbar-label">Análise de desempenho</span>
+                    <div class="period-pills">
+                        <button class="pill active" data-period="week">Semana</button>
+                        <button class="pill" data-period="month">Mês</button>
+                        <button class="pill" data-period="all">Tudo</button>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat"><span class="stat-num" id="s-wins">0</span><span class="stat-lbl">Wins</span>
+                    </div>
+                    <div class="stat"><span class="stat-num" id="s-fails">0</span><span class="stat-lbl">Falhas</span>
+                    </div>
+                    <div class="stat accent"><span class="stat-num" id="s-rate">0%</span><span class="stat-lbl">Win
+                            Rate</span></div>
+                    <div class="stat"><span class="stat-num" id="s-streak">0</span><span class="stat-lbl">Melhor
+                            Streak</span></div>
+                </div>
+
+                <div class="dash-grid">
+                    <div class="card">
+                        <div class="card-head"><span class="card-title">Win vs Falha por dia</span></div>
+                        <div class="chart-wrap"><canvas id="chart-canvas"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><span class="card-title">Por hábito</span></div>
+                        <div id="habit-bars" class="habit-bars"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><span class="card-title">Detalhamento</span></div>
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Hábito</th>
+                                <th>Wins</th>
+                                <th>Falhas</th>
+                                <th>Win Rate</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: HABIT ===== -->
+    <div id="habit-modal" class="overlay hidden">
+        <div class="modal">
+            <div class="modal-top">
+                <h3>Novo Hábito</h3><button class="close-btn" data-close="habit-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="lbl">Nome</label>
+                <input type="text" id="h-name" class="input" placeholder="Ex: Treinar, Ler, Meditar...">
+                <label class="lbl">Ícone</label>
+                <div class="picker" id="icon-picker">
+                    <button class="pick selected" data-v="🏋️">🏋️</button>
+                    <button class="pick" data-v="📚">📚</button>
+                    <button class="pick" data-v="🧘">🧘</button>
+                    <button class="pick" data-v="💧">💧</button>
+                    <button class="pick" data-v="🥗">🥗</button>
+                    <button class="pick" data-v="💤">💤</button>
+                    <button class="pick" data-v="💻">💻</button>
+                    <button class="pick" data-v="🎯">🎯</button>
+                    <button class="pick" data-v="🏃">🏃</button>
+                    <button class="pick" data-v="✍️">✍️</button>
+                    <button class="pick" data-v="🎵">🎵</button>
+                    <button class="pick" data-v="🧠">🧠</button>
+                    <button class="pick" data-v="💰">💰</button>
+                    <button class="pick" data-v="🚫">🚫</button>
+                    <button class="pick" data-v="⚡">⚡</button>
+                    <button class="pick" data-v="🔥">🔥</button>
+                </div>
+                <label class="lbl">Cor</label>
+                <div class="picker" id="color-picker">
+                    <button class="cdot selected" data-v="#e6002a" style="background:#e6002a"></button>
+                    <button class="cdot" data-v="#ff3366" style="background:#ff3366"></button>
+                    <button class="cdot" data-v="#ff6600" style="background:#ff6600"></button>
+                    <button class="cdot" data-v="#ffcc00" style="background:#ffcc00"></button>
+                    <button class="cdot" data-v="#00e676" style="background:#00e676"></button>
+                    <button class="cdot" data-v="#00b0ff" style="background:#00b0ff"></button>
+                    <button class="cdot" data-v="#9933ff" style="background:#9933ff"></button>
+                    <button class="cdot" data-v="#ff0099" style="background:#ff0099"></button>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="habit-modal">Cancelar</button>
+                <button id="h-save" class="btn-red">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: DELETE ===== -->
+    <div id="del-modal" class="overlay hidden">
+        <div class="modal modal-narrow">
+            <div class="modal-top">
+                <h3>Excluir hábito</h3><button class="close-btn" data-close="del-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>Excluir <b id="del-name"></b>? Todos os registros serão perdidos.</p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="del-modal">Cancelar</button>
+                <button id="del-confirm" class="btn-fail">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: NOTE ===== -->
+    <div id="note-modal" class="overlay hidden">
+        <div class="modal">
+            <div class="modal-top">
+                <h3 id="note-modal-title">Nova Nota</h3><button class="close-btn" data-close="note-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="lbl">Título</label>
+                <input type="text" id="n-title" class="input" placeholder="Título">
+                <label class="lbl">Conteúdo</label>
+                <textarea id="n-content" class="input textarea" rows="8" placeholder="Escreva aqui..."></textarea>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="note-modal">Cancelar</button>
+                <button id="n-save" class="btn-red">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: PASSWORD ===== -->
+    <div id="pw-modal" class="overlay hidden">
+        <div class="modal modal-narrow">
+            <div class="modal-top">
+                <h3>Alterar Senha</h3><button class="close-btn" data-close="pw-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="lbl">Nova senha</label>
+                <input type="password" id="pw-new" class="input" placeholder="Nova senha">
+                <label class="lbl">Confirmar</label>
+                <input type="password" id="pw-conf" class="input" placeholder="Confirme">
+                <span id="pw-err" class="err-msg"></span>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="pw-modal">Cancelar</button>
+                <button id="pw-save" class="btn-red">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="supabase-config.js"></script>
+    <script src="app.js?v=4"></script>
+</body>
+
+</html>
