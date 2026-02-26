@@ -25,6 +25,7 @@
     let editNoteId = null;
     let supabaseReady = false;
     let supabase = null;
+    let mobileSelectedDay = null; // index 0-6 for mobile day view
 
     // ==================== SUPABASE INIT ====================
     function initSupabase() {
@@ -246,9 +247,9 @@
 
     // ==================== TRACKER ====================
     function initTracker() {
-        $('prev-week').onclick = () => { weekOff--; renderTracker(); };
-        $('next-week').onclick = () => { weekOff++; renderTracker(); };
-        $('today-btn').onclick = () => { weekOff = 0; renderTracker(); };
+        $('prev-week').onclick = () => { weekOff--; mobileSelectedDay = null; renderTracker(); };
+        $('next-week').onclick = () => { weekOff++; mobileSelectedDay = null; renderTracker(); };
+        $('today-btn').onclick = () => { weekOff = 0; mobileSelectedDay = null; renderTracker(); };
     }
 
     function renderTracker() {
@@ -298,6 +299,104 @@
         grid.querySelectorAll('.row-del').forEach(b => { b.onclick = () => openDel(b.dataset.del); });
 
         renderProgressChart();
+        renderMobileTracker();
+    }
+
+    // ==================== MOBILE TRACKER ====================
+    function isMobile() {
+        return window.innerWidth <= 640;
+    }
+
+    function renderMobileTracker() {
+        if (!isMobile()) return;
+
+        const habits = getH(), rec = getR(), days = weekDays(), td = now();
+        const strip = $('mobile-day-strip');
+        const container = $('mobile-tracker');
+        const emptyEl = $('mobile-tracker-empty');
+
+        if (!habits.length) {
+            strip.innerHTML = '';
+            container.innerHTML = '';
+            if (emptyEl) emptyEl.classList.remove('hidden');
+            return;
+        }
+        if (emptyEl) emptyEl.classList.add('hidden');
+
+        // Auto-select today if not set
+        if (mobileSelectedDay === null) {
+            mobileSelectedDay = days.findIndex(d => same(d, td));
+            if (mobileSelectedDay === -1) mobileSelectedDay = 0;
+        }
+
+        const selDay = days[mobileSelectedDay];
+
+        // Day strip
+        strip.innerHTML = days.map((d, i) => {
+            const isToday = same(d, td);
+            const active = i === mobileSelectedDay;
+            let cls = 'mobile-day-btn';
+            if (active) cls += ' active';
+            if (isToday) cls += ' is-today';
+            return `<button class="${cls}" data-di="${i}"><span>${DAYS[d.getDay()]}</span><span class="day-num">${d.getDate()}</span></button>`;
+        }).join('');
+
+        strip.querySelectorAll('.mobile-day-btn').forEach(b => {
+            b.onclick = () => {
+                mobileSelectedDay = parseInt(b.dataset.di);
+                renderMobileTracker();
+            };
+        });
+
+        // Scroll active day into view
+        const activeBtn = strip.querySelector('.mobile-day-btn.active');
+        if (activeBtn) {
+            activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+
+        // Day summary
+        let winsToday = 0;
+        habits.forEach(hab => {
+            if (rec[rk(hab.id, selDay)] === 'win') winsToday++;
+        });
+        const pct = Math.round((winsToday / habits.length) * 100);
+        const scoreCls = pct >= 60 ? 'good' : pct >= 30 ? 'mid' : pct > 0 ? 'bad' : '';
+        const dayLabel = same(selDay, td) ? 'Hoje' : `${DAYS_F[selDay.getDay()]}, ${selDay.getDate()} ${MO[selDay.getMonth()]}`;
+
+        let html = `<div class="mobile-day-summary">`;
+        html += `<span class="mobile-day-label">${dayLabel}</span>`;
+        html += `<span class="mobile-day-score ${scoreCls}">${winsToday}/${habits.length} — ${pct}%</span>`;
+        html += `</div>`;
+
+        // Habit cards
+        habits.forEach(hab => {
+            const key = rk(hab.id, selDay);
+            const s = rec[key] || null;
+            const streak = calcStreak(hab.id, rec);
+            let toggleCls = 'mobile-habit-toggle';
+            let toggleTxt = '—';
+            if (s === 'win') { toggleCls += ' w'; toggleTxt = '✓ Win'; }
+            else if (s === 'fail') { toggleCls += ' f'; toggleTxt = '✗ Fail'; }
+
+            html += `<div class="mobile-habit-card">`;
+            html += `<div class="mobile-habit-left">`;
+            html += `<div class="mobile-habit-icon" style="border:1px solid ${hab.color || 'var(--brd)'}">${hab.icon}</div>`;
+            html += `<div><div class="mobile-habit-name">${esc(hab.name)}</div>`;
+            html += `<div class="mobile-habit-streak">${streak > 0 ? '🔥 ' + streak + 'd' : ''}</div></div></div>`;
+            html += `<button class="${toggleCls}" data-h="${hab.id}" data-d="${dk(selDay)}">${toggleTxt}</button>`;
+            html += `<button class="mobile-habit-del" data-del="${hab.id}">✕</button>`;
+            html += `</div>`;
+        });
+
+        container.innerHTML = html;
+
+        // Bind events
+        container.querySelectorAll('.mobile-habit-toggle').forEach(b => {
+            b.onclick = () => toggleStatus(b);
+        });
+        container.querySelectorAll('.mobile-habit-del').forEach(b => {
+            b.onclick = () => openDel(b.dataset.del);
+        });
     }
 
     // ==================== PROGRESS LINE CHART ====================
@@ -814,7 +913,10 @@
         clearTimeout(resizeT);
         resizeT = setTimeout(() => {
             if (!$('dashboard-view').classList.contains('hidden')) renderDash();
-            if (!$('tracker-view').classList.contains('hidden')) renderProgressChart();
+            if (!$('tracker-view').classList.contains('hidden')) {
+                renderProgressChart();
+                renderMobileTracker();
+            }
         }, 250);
     });
 })();

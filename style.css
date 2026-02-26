@@ -1253,6 +1253,228 @@ body {
     border-color: #fff
 }
 
+/* ===== MOBILE CARD VIEW (hidden on desktop) ===== */
+.mobile-day-nav {
+    display: none
+}
+
+.mobile-tracker {
+    display: none
+}
+
+.mobile-only {
+    display: none !important
+}
+
+.mobile-day-strip {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 4px 0;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none
+}
+
+.mobile-day-strip::-webkit-scrollbar {
+    display: none
+}
+
+.mobile-day-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 52px;
+    padding: 8px 6px;
+    background: var(--bg1);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    color: var(--t3);
+    font-family: inherit;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all .15s;
+    scroll-snap-align: center;
+    flex-shrink: 0
+}
+
+.mobile-day-btn .day-num {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--t2);
+    margin-top: 2px
+}
+
+.mobile-day-btn.active {
+    background: var(--red-sub);
+    border-color: var(--red);
+    color: var(--red)
+}
+
+.mobile-day-btn.active .day-num {
+    color: var(--red)
+}
+
+.mobile-day-btn.is-today {
+    position: relative
+}
+
+.mobile-day-btn.is-today::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--red)
+}
+
+/* Mobile Habit Card */
+.mobile-habit-card {
+    background: var(--bg1);
+    border: 1px solid var(--brd);
+    border-radius: var(--r-lg);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background .15s
+}
+
+.mobile-habit-card:active {
+    background: var(--bg2)
+}
+
+.mobile-habit-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0
+}
+
+.mobile-habit-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 1.2rem;
+    flex-shrink: 0
+}
+
+.mobile-habit-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--t1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
+.mobile-habit-streak {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--t3);
+    margin-top: 1px
+}
+
+.mobile-habit-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 72px;
+    height: 40px;
+    border-radius: var(--r);
+    font-family: inherit;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+    border: 1px solid var(--brd);
+    background: var(--bg);
+    color: var(--t3);
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent
+}
+
+.mobile-habit-toggle:active {
+    transform: scale(0.94)
+}
+
+.mobile-habit-toggle.w {
+    background: var(--grn-bg);
+    border-color: var(--grn-br);
+    color: var(--grn)
+}
+
+.mobile-habit-toggle.f {
+    background: var(--fail-bg);
+    border-color: var(--fail-br);
+    color: var(--fail)
+}
+
+.mobile-habit-del {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--t3);
+    font-size: 0.7rem;
+    cursor: pointer;
+    opacity: 0.4;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent
+}
+
+.mobile-day-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 4px;
+    margin-bottom: 8px
+}
+
+.mobile-day-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--t1)
+}
+
+.mobile-day-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--bg2);
+    color: var(--t2)
+}
+
+.mobile-day-score.good {
+    background: var(--grn-bg);
+    color: var(--grn)
+}
+
+.mobile-day-score.mid {
+    background: rgba(255, 204, 0, 0.12);
+    color: #eebb00
+}
+
+.mobile-day-score.bad {
+    background: var(--fail-bg);
+    color: var(--fail)
+}
+
 /* ===== RESPONSIVE — TABLET ===== */
 @media (max-width: 900px) {
     .sidebar {
@@ -1293,6 +1515,32 @@ body {
 
 /* ===== RESPONSIVE — MOBILE ===== */
 @media (max-width: 640px) {
+
+    /* Show mobile views, hide desktop views */
+    .desktop-only {
+        display: none !important
+    }
+
+    .mobile-only {
+        display: block !important
+    }
+
+    .mobile-day-nav {
+        display: block;
+        margin-bottom: 10px
+    }
+
+    .mobile-tracker {
+        display: block
+    }
+
+    .progress-chart-wrap {
+        height: 150px
+    }
+
+    .progress-chart-card {
+        margin-bottom: 10px
+    }
 
     /* ---- BOTTOM NAV BAR ---- */
     .sidebar {

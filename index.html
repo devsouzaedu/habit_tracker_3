@@ -126,12 +126,25 @@
                     <div class="progress-chart-wrap"><canvas id="progress-canvas"></canvas></div>
                 </div>
 
-                <div class="tracker-card">
+                <!-- MOBILE: Day selector + Card list -->
+                <div id="mobile-day-nav" class="mobile-day-nav">
+                    <div id="mobile-day-strip" class="mobile-day-strip"></div>
+                </div>
+                <div id="mobile-tracker" class="mobile-tracker"></div>
+
+                <!-- DESKTOP: Grid view -->
+                <div class="tracker-card desktop-only">
                     <div id="tracker-grid" class="tracker-grid"></div>
                     <div id="tracker-empty" class="empty-msg hidden">
                         <p>Nenhum hábito cadastrado</p>
                         <span>Clique em <b>+ Novo Hábito</b> para começar</span>
                     </div>
+                </div>
+
+                <!-- MOBILE: Empty state -->
+                <div id="mobile-tracker-empty" class="empty-msg hidden mobile-only">
+                    <p>Nenhum hábito cadastrado</p>
+                    <span>Toque em <b>+ Novo Hábito</b> para começar</span>
                 </div>
             </section>
 
