@@ -317,7 +317,7 @@
     function renderMobileTracker() {
         if (!isMobile()) return;
 
-        const habits = getH(), rec = getR(), days = weekDays(), td = now();
+        const habits = getH(), rec = getR(), td = now();
         const strip = $('mobile-day-strip');
         const container = $('mobile-tracker');
         const emptyEl = $('mobile-tracker-empty');
@@ -330,36 +330,49 @@
         }
         if (emptyEl) emptyEl.classList.add('hidden');
 
-        // Auto-select today if not set
-        if (mobileSelectedDay === null) {
-            mobileSelectedDay = days.findIndex(d => same(d, td));
-            if (mobileSelectedDay === -1) mobileSelectedDay = 0;
+        // Generate extended range: 21 past + today + 7 future = 29 days
+        const mobileDays = [];
+        for (let i = -21; i <= 7; i++) {
+            mobileDays.push(addD(td, i));
         }
 
-        const selDay = days[mobileSelectedDay];
+        // Auto-select today if not set
+        if (mobileSelectedDay === null) {
+            mobileSelectedDay = dk(td);
+        }
 
-        // Day strip
-        strip.innerHTML = days.map((d, i) => {
+        const selDay = mobileDays.find(d => dk(d) === mobileSelectedDay) || td;
+
+        // Day strip — show month separator labels
+        let lastMonth = -1;
+        strip.innerHTML = mobileDays.map(d => {
             const isToday = same(d, td);
-            const active = i === mobileSelectedDay;
+            const active = dk(d) === mobileSelectedDay;
             let cls = 'mobile-day-btn';
             if (active) cls += ' active';
             if (isToday) cls += ' is-today';
-            return `<button class="${cls}" data-di="${i}"><span>${DAYS[d.getDay()]}</span><span class="day-num">${d.getDate()}</span></button>`;
+            let monthLabel = '';
+            if (d.getMonth() !== lastMonth) {
+                monthLabel = `<span class="day-month">${MO[d.getMonth()]}</span>`;
+                lastMonth = d.getMonth();
+            }
+            return `<button class="${cls}" data-dk="${dk(d)}">${monthLabel}<span>${DAYS[d.getDay()]}</span><span class="day-num">${d.getDate()}</span></button>`;
         }).join('');
 
         strip.querySelectorAll('.mobile-day-btn').forEach(b => {
             b.onclick = () => {
-                mobileSelectedDay = parseInt(b.dataset.di);
+                mobileSelectedDay = b.dataset.dk;
                 renderMobileTracker();
             };
         });
 
         // Scroll active day into view
-        const activeBtn = strip.querySelector('.mobile-day-btn.active');
-        if (activeBtn) {
-            activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        }
+        requestAnimationFrame(() => {
+            const activeBtn = strip.querySelector('.mobile-day-btn.active');
+            if (activeBtn) {
+                activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        });
 
         // Day summary
         let winsToday = 0;
@@ -383,8 +396,8 @@
             const trend = calcTrend(hab.id, rec);
             let toggleCls = 'mobile-habit-toggle';
             let toggleTxt = '—';
-            if (s === 'win') { toggleCls += ' w'; toggleTxt = '✓ Win'; }
-            else if (s === 'fail') { toggleCls += ' f'; toggleTxt = '✗ Fail'; }
+            if (s === 'win') { toggleCls += ' w'; toggleTxt = '✓'; }
+            else if (s === 'fail') { toggleCls += ' f'; toggleTxt = '✗'; }
 
             html += `<div class="mobile-habit-card${s === 'win' ? ' card-win' : s === 'fail' ? ' card-fail' : ''}">`;
             html += `<div class="mobile-habit-left">`;
