@@ -11,6 +11,7 @@
         REC: 'ht_records',
         NOTES: 'ht_notes',
         FIN: 'ht_finance',
+        WORKOUT: 'ht_workouts',
         AUTH: 'ht_auth'
     };
     const DEF_PW = '1234';
@@ -26,6 +27,80 @@
     let supabaseReady = false;
     let supabase = null;
     let mobileSelectedDay = null; // index 0-6 for mobile day view
+
+    // workout state
+    let woActive = null; // { startTime, muscles, exercises }
+    let woTimerInterval = null;
+    let woDetailId = null;
+
+    // ==================== EXERCISE DATABASE ====================
+    const MUSCLE_GROUPS = [
+        { id: 'peito', name: 'Peito', emoji: '🫁', color: '#e6002a', split: 'push' },
+        { id: 'ombro', name: 'Ombro', emoji: '🏔️', color: '#ff6600', split: 'push' },
+        { id: 'triceps', name: 'Tríceps', emoji: '💪', color: '#ff3366', split: 'push' },
+        { id: 'costas', name: 'Costas', emoji: '🔙', color: '#00b0ff', split: 'pull' },
+        { id: 'biceps', name: 'Bíceps', emoji: '💪', color: '#9933ff', split: 'pull' },
+        { id: 'trapezio', name: 'Trapézio', emoji: '🔺', color: '#00e676', split: 'pull' },
+        { id: 'quadriceps', name: 'Quadríceps', emoji: '🦵', color: '#ffcc00', split: 'legs' },
+        { id: 'posterior', name: 'Posterior', emoji: '🦵', color: '#ff9900', split: 'legs' },
+        { id: 'panturrilha', name: 'Panturrilha', emoji: '🦶', color: '#00e676', split: 'legs' },
+        { id: 'gluteos', name: 'Glúteos', emoji: '🍑', color: '#ff0099', split: 'legs' },
+        { id: 'abdominais', name: 'Abdominais', emoji: '🎯', color: '#00e676', split: 'all' }
+    ];
+
+    const EXERCISE_DB = {
+        peito: [
+            'Supino Reto', 'Supino Inclinado', 'Supino Declinado',
+            'Crucifixo', 'Crucifixo Inclinado', 'Crossover',
+            'Flexão', 'Peck Deck', 'Voador'
+        ],
+        ombro: [
+            'Desenvolvimento', 'Desenvolvimento Halteres',
+            'Elevação Lateral', 'Elevação Frontal',
+            'Face Pull', 'Arnold Press', 'Remada Alta'
+        ],
+        triceps: [
+            'Tríceps Corda', 'Tríceps Testa', 'Tríceps Francês',
+            'Tríceps Barra', 'Mergulho', 'Tríceps Coice',
+            'Tríceps Banco'
+        ],
+        costas: [
+            'Puxada Frontal', 'Puxada Triângulo', 'Remada Curvada',
+            'Remada Cavaleiro', 'Remada Baixa', 'Pull-up',
+            'Pullover', 'Remada Unilateral', 'Barra Fixa'
+        ],
+        biceps: [
+            'Rosca Direta', 'Rosca Alternada', 'Rosca Martelo',
+            'Rosca Scott', 'Rosca Concentrada', 'Rosca Inversa',
+            'Rosca Barra W'
+        ],
+        trapezio: [
+            'Encolhimento Halteres', 'Encolhimento Barra',
+            'Remada Alta', 'Face Pull', 'Farmer Walk'
+        ],
+        quadriceps: [
+            'Agachamento Livre', 'Leg Press', 'Cadeira Extensora',
+            'Agachamento Hack', 'Afundo', 'Agachamento Frontal',
+            'Passada', 'Sissy Squat'
+        ],
+        posterior: [
+            'Cadeira Flexora', 'Stiff', 'Mesa Flexora',
+            'Levantamento Terra', 'Good Morning', 'Leg Curl Deitado'
+        ],
+        panturrilha: [
+            'Panturrilha em Pé', 'Panturrilha Sentado',
+            'Panturrilha no Leg Press', 'Panturrilha Unilateral'
+        ],
+        gluteos: [
+            'Hip Thrust', 'Abdução', 'Búlgaro',
+            'Elevação Pélvica', 'Kickback', 'Agachamento Sumô'
+        ],
+        abdominais: [
+            'Abdominal Crunch', 'Prancha', 'Elevação de Pernas',
+            'Abdominal Bicicleta', 'Russian Twist', 'Abdominal Infra',
+            'Prancha Lateral', 'Abdominal na Roda'
+        ]
+    };
 
     // ==================== SUPABASE INIT ====================
     function initSupabase() {
@@ -67,6 +142,8 @@
     const svN = n => lSet(KEYS.NOTES, n);
     const getF = () => lGet(KEYS.FIN, { balance: 0, log: [] });
     const svF = f => lSet(KEYS.FIN, f);
+    const getW = () => lGet(KEYS.WORKOUT, []);
+    const svW = w => lSet(KEYS.WORKOUT, w);
 
     // ===== SUPABASE SYNC =====
     // Uses a single row in `user_data` table with key='default'
@@ -286,12 +363,15 @@
 
         // Schedule midnight auto-fail check
         scheduleMidnightCheck();
+
+        // Initialize workout
+        initWorkout();
     }
 
     // ==================== NAV ====================
     function initNav() {
         const btns = document.querySelectorAll('.sidebar-btn:not(.logout)');
-        const titles = { tracker: 'Tracker', notes: 'Notas', finance: 'Finanças', dashboard: 'Dashboard' };
+        const titles = { tracker: 'Tracker', notes: 'Notas', finance: 'Finanças', workout: 'Treino', dashboard: 'Dashboard' };
         btns.forEach(b => {
             b.onclick = () => {
                 btns.forEach(x => x.classList.remove('active'));
@@ -303,6 +383,7 @@
                 if (v === 'dashboard') renderDash();
                 if (v === 'notes') renderNotes();
                 if (v === 'finance') renderFinance();
+                if (v === 'workout') renderWorkout();
             };
         });
         $('logout-btn').onclick = () => { sessionStorage.removeItem(KEYS.AUTH); location.reload(); };
@@ -886,6 +967,380 @@
                 if (entry) { fin.balance -= entry.amount; fin.log = fin.log.filter(x => x.id !== b.dataset.fid); svF(fin); renderFinance(); }
             };
         });
+    }
+
+    // ==================== WORKOUT ====================
+    function initWorkout() {
+        const muscleGrid = $('wo-muscle-grid');
+        const startBtn = $('wo-start-btn');
+        let selectedMuscles = new Set();
+
+        // Render muscle grid
+        muscleGrid.innerHTML = MUSCLE_GROUPS.map(mg =>
+            `<button class="wo-muscle-chip" data-muscle="${mg.id}">
+                <span class="muscle-emoji">${mg.emoji}</span>${mg.name}
+            </button>`
+        ).join('');
+
+        // Muscle chip toggle
+        muscleGrid.querySelectorAll('.wo-muscle-chip').forEach(chip => {
+            chip.onclick = () => {
+                const mid = chip.dataset.muscle;
+                if (selectedMuscles.has(mid)) selectedMuscles.delete(mid);
+                else selectedMuscles.add(mid);
+                chip.classList.toggle('selected');
+                startBtn.disabled = selectedMuscles.size === 0;
+                // Deactivate PPL shortcuts if manual selection changes
+                document.querySelectorAll('.wo-split-btn').forEach(b => b.classList.remove('active'));
+            };
+        });
+
+        // PPL Shortcuts
+        document.querySelectorAll('.wo-split-btn').forEach(btn => {
+            btn.onclick = () => {
+                const split = btn.dataset.split;
+                document.querySelectorAll('.wo-split-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                selectedMuscles.clear();
+                const splitMuscles = MUSCLE_GROUPS.filter(mg => mg.split === split || mg.split === 'all');
+                splitMuscles.forEach(mg => selectedMuscles.add(mg.id));
+
+                muscleGrid.querySelectorAll('.wo-muscle-chip').forEach(chip => {
+                    chip.classList.toggle('selected', selectedMuscles.has(chip.dataset.muscle));
+                });
+                startBtn.disabled = false;
+            };
+        });
+
+        // Start Workout
+        startBtn.onclick = () => {
+            woActive = {
+                startTime: new Date().toISOString(),
+                muscles: [...selectedMuscles],
+                exercises: []
+            };
+            renderWorkout();
+            startWoTimer();
+        };
+
+        // Add Exercise button
+        $('wo-add-exercise-btn').onclick = () => openExercisePicker();
+
+        // Finish Workout
+        $('wo-finish-btn').onclick = () => {
+            if (!woActive) return;
+            if (!woActive.exercises.length) {
+                if (!confirm('Nenhum exercício adicionado. Finalizar mesmo assim?')) return;
+            }
+            const workout = {
+                id: 'wo_' + Date.now(),
+                startTime: woActive.startTime,
+                endTime: new Date().toISOString(),
+                muscles: woActive.muscles,
+                exercises: woActive.exercises,
+                duration: Math.floor((new Date() - new Date(woActive.startTime)) / 1000)
+            };
+            const workouts = getW();
+            workouts.unshift(workout);
+            svW(workouts);
+            woActive = null;
+            clearInterval(woTimerInterval);
+            woTimerInterval = null;
+            renderWorkout();
+        };
+
+        // Exercise picker: search
+        $('ex-search').oninput = () => renderExerciseList();
+
+        // Exercise picker: custom exercise
+        $('ex-custom-add').onclick = () => {
+            const name = $('ex-custom-name').value.trim();
+            if (!name || !woActive) return;
+            const muscle = woActive.muscles[0] || 'peito';
+            woActive.exercises.push({ name, muscle, addedAt: new Date().toISOString() });
+            $('ex-custom-name').value = '';
+            $('exercise-modal').classList.add('hidden');
+            renderWorkout();
+        };
+        $('ex-custom-name').onkeydown = e => { if (e.key === 'Enter') $('ex-custom-add').click(); };
+
+        // Workout detail delete
+        $('wo-detail-del').onclick = () => {
+            if (!woDetailId) return;
+            if (!confirm('Excluir este treino?')) return;
+            svW(getW().filter(w => w.id !== woDetailId));
+            $('wo-detail-modal').classList.add('hidden');
+            woDetailId = null;
+            renderWorkout();
+        };
+
+        renderWorkout();
+    }
+
+    function startWoTimer() {
+        clearInterval(woTimerInterval);
+        const updateTimer = () => {
+            if (!woActive) return;
+            const elapsed = Math.floor((new Date() - new Date(woActive.startTime)) / 1000);
+            const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+            const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+            const s = String(elapsed % 60).padStart(2, '0');
+            $('wo-timer').textContent = `${h}:${m}:${s}`;
+        };
+        updateTimer();
+        woTimerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function fmtDuration(seconds) {
+        if (seconds < 60) return `${seconds}s`;
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        if (h > 0) return `${h}h ${m}min`;
+        return `${m}min`;
+    }
+
+    function renderWorkout() {
+        const activePanel = $('wo-active-panel');
+        const startPanel = $('wo-start-panel');
+
+        if (woActive) {
+            activePanel.classList.remove('hidden');
+            startPanel.classList.add('hidden');
+
+            // Muscles tags
+            const musclesHtml = woActive.muscles.map(mid => {
+                const mg = MUSCLE_GROUPS.find(m => m.id === mid);
+                return mg ? `<span class="wo-muscle-tag">${mg.emoji} ${mg.name}</span>` : '';
+            }).join('');
+            $('wo-muscles-selected').innerHTML = musclesHtml;
+
+            // Exercise list
+            const exHtml = woActive.exercises.map((ex, i) => {
+                const mg = MUSCLE_GROUPS.find(m => m.id === ex.muscle);
+                const color = mg ? mg.color : '#888';
+                const mName = mg ? mg.name : ex.muscle;
+                return `<div class="wo-ex-card">
+                    <div class="wo-ex-info">
+                        <div class="wo-ex-muscle-dot" style="background:${color}"></div>
+                        <span class="wo-ex-name">${esc(ex.name)}</span>
+                        <span class="wo-ex-muscle-label">${mName}</span>
+                    </div>
+                    <button class="wo-ex-remove" data-exi="${i}" title="Remover">✕</button>
+                </div>`;
+            }).join('');
+
+            $('wo-exercise-list').innerHTML = exHtml || '<div class="empty-msg-sm">Toque em <b>+ Exercício</b> para adicionar</div>';
+
+            // Bind remove buttons
+            $('wo-exercise-list').querySelectorAll('.wo-ex-remove').forEach(btn => {
+                btn.onclick = () => {
+                    woActive.exercises.splice(parseInt(btn.dataset.exi), 1);
+                    renderWorkout();
+                };
+            });
+        } else {
+            activePanel.classList.add('hidden');
+            startPanel.classList.remove('hidden');
+        }
+
+        renderWorkoutHistory();
+    }
+
+    function renderWorkoutHistory() {
+        const workouts = getW();
+        const container = $('wo-history');
+        const emptyEl = $('wo-history-empty');
+        const countEl = $('wo-history-count');
+
+        if (!workouts.length) {
+            container.innerHTML = '';
+            emptyEl.classList.remove('hidden');
+            countEl.textContent = '';
+            return;
+        }
+        emptyEl.classList.add('hidden');
+        countEl.textContent = `${workouts.length} treino${workouts.length > 1 ? 's' : ''}`;
+
+        container.innerHTML = workouts.slice(0, 30).map(w => {
+            const dt = new Date(w.startTime);
+            const muscleNames = w.muscles.map(mid => {
+                const mg = MUSCLE_GROUPS.find(m => m.id === mid);
+                return mg ? mg.emoji + ' ' + mg.name : mid;
+            }).join(', ');
+
+            const exTags = w.exercises.slice(0, 4).map(ex =>
+                `<span class="wo-h-ex-tag">${esc(ex.name)}</span>`
+            ).join('');
+            const moreCount = w.exercises.length > 4 ? `<span class="wo-h-ex-more">+${w.exercises.length - 4}</span>` : '';
+
+            return `<div class="wo-history-card" data-wid="${w.id}">
+                <div class="wo-h-date">
+                    <span class="wo-h-day">${dt.getDate()}</span>
+                    <span class="wo-h-month">${MO[dt.getMonth()]}</span>
+                </div>
+                <div class="wo-h-divider"></div>
+                <div class="wo-h-info">
+                    <div class="wo-h-top">
+                        <span class="wo-h-muscles">${muscleNames}</span>
+                        <span class="wo-h-duration">${fmtDuration(w.duration || 0)}</span>
+                    </div>
+                    <div class="wo-h-exercises">${exTags}${moreCount}</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        container.querySelectorAll('.wo-history-card').forEach(card => {
+            card.onclick = () => openWorkoutDetail(card.dataset.wid);
+        });
+    }
+
+    function openExercisePicker() {
+        if (!woActive) return;
+        $('exercise-modal').classList.remove('hidden');
+        $('ex-search').value = '';
+        $('ex-custom-name').value = '';
+
+        // Muscle tabs
+        const tabsContainer = $('ex-muscle-tabs');
+        const activeMuscles = woActive.muscles;
+        tabsContainer.innerHTML = '<button class="ex-muscle-tab active" data-mtab="all">Todos</button>' +
+            activeMuscles.map(mid => {
+                const mg = MUSCLE_GROUPS.find(m => m.id === mid);
+                return mg ? `<button class="ex-muscle-tab" data-mtab="${mid}">${mg.emoji} ${mg.name}</button>` : '';
+            }).join('');
+
+        tabsContainer.querySelectorAll('.ex-muscle-tab').forEach(tab => {
+            tab.onclick = () => {
+                tabsContainer.querySelectorAll('.ex-muscle-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                renderExerciseList();
+            };
+        });
+
+        renderExerciseList();
+        setTimeout(() => $('ex-search').focus(), 100);
+    }
+
+    function renderExerciseList() {
+        if (!woActive) return;
+        const search = ($('ex-search').value || '').toLowerCase().trim();
+        const activeTab = document.querySelector('.ex-muscle-tab.active');
+        const filterMuscle = activeTab ? activeTab.dataset.mtab : 'all';
+
+        let exercises = [];
+        const musclesToShow = filterMuscle === 'all' ? woActive.muscles : [filterMuscle];
+
+        musclesToShow.forEach(mid => {
+            const exList = EXERCISE_DB[mid] || [];
+            exList.forEach(name => {
+                if (!search || name.toLowerCase().includes(search)) {
+                    exercises.push({ name, muscle: mid });
+                }
+            });
+        });
+
+        const listEl = $('ex-list');
+        if (!exercises.length) {
+            listEl.innerHTML = '<div class="empty-msg-sm">Nenhum exercício encontrado</div>';
+            return;
+        }
+
+        listEl.innerHTML = exercises.map(ex => {
+            const mg = MUSCLE_GROUPS.find(m => m.id === ex.muscle);
+            const color = mg ? mg.color : '#888';
+            const mName = mg ? mg.name : ex.muscle;
+            return `<div class="ex-item" data-exname="${esc(ex.name)}" data-exmuscle="${ex.muscle}">
+                <div class="ex-item-left">
+                    <div class="wo-ex-muscle-dot" style="background:${color}"></div>
+                    <span class="ex-item-name">${esc(ex.name)}</span>
+                    <span class="ex-item-muscle">${mName}</span>
+                </div>
+                <span class="ex-item-add">+ ADD</span>
+            </div>`;
+        }).join('');
+
+        listEl.querySelectorAll('.ex-item').forEach(item => {
+            item.onclick = () => {
+                woActive.exercises.push({
+                    name: item.dataset.exname,
+                    muscle: item.dataset.exmuscle,
+                    addedAt: new Date().toISOString()
+                });
+                renderWorkout();
+                // Visual feedback
+                item.style.background = 'var(--grn-bg)';
+                item.style.borderColor = 'var(--grn-br)';
+                setTimeout(() => {
+                    item.style.background = '';
+                    item.style.borderColor = '';
+                }, 400);
+            };
+        });
+    }
+
+    function openWorkoutDetail(wid) {
+        const w = getW().find(x => x.id === wid);
+        if (!w) return;
+        woDetailId = wid;
+
+        const dt = new Date(w.startTime);
+        const dayName = DAYS_F[dt.getDay()];
+        $('wo-detail-title').textContent = `Treino — ${dayName}, ${dt.getDate()} ${MO[dt.getMonth()]}`;
+
+        const muscleNames = w.muscles.map(mid => {
+            const mg = MUSCLE_GROUPS.find(m => m.id === mid);
+            return mg ? mg.emoji + ' ' + mg.name : mid;
+        });
+
+        const startHour = new Date(w.startTime);
+        const endHour = w.endTime ? new Date(w.endTime) : null;
+        const startStr = `${String(startHour.getHours()).padStart(2, '0')}:${String(startHour.getMinutes()).padStart(2, '0')}`;
+        const endStr = endHour ? `${String(endHour.getHours()).padStart(2, '0')}:${String(endHour.getMinutes()).padStart(2, '0')}` : '--:--';
+
+        let html = '';
+
+        // Stats
+        html += `<div class="wo-detail-stats">
+            <div class="wo-detail-stat">
+                <span class="wo-ds-val">${fmtDuration(w.duration || 0)}</span>
+                <span class="wo-ds-lbl">Duração</span>
+            </div>
+            <div class="wo-detail-stat">
+                <span class="wo-ds-val">${startStr} - ${endStr}</span>
+                <span class="wo-ds-lbl">Horário</span>
+            </div>
+            <div class="wo-detail-stat">
+                <span class="wo-ds-val">${w.exercises.length}</span>
+                <span class="wo-ds-lbl">Exercícios</span>
+            </div>
+        </div>`;
+
+        // Muscles
+        html += '<div class="wo-detail-section"><div class="wo-detail-label">Músculos Treinados</div>';
+        html += '<div class="wo-detail-muscles">';
+        html += muscleNames.map(n => `<span class="wo-muscle-tag">${n}</span>`).join('');
+        html += '</div></div>';
+
+        // Exercises
+        if (w.exercises.length) {
+            html += '<div class="wo-detail-section"><div class="wo-detail-label">Exercícios Realizados</div>';
+            html += '<div class="wo-detail-exercises">';
+            html += w.exercises.map(ex => {
+                const mg = MUSCLE_GROUPS.find(m => m.id === ex.muscle);
+                const color = mg ? mg.color : '#888';
+                const mName = mg ? mg.name : ex.muscle;
+                return `<div class="wo-detail-ex">
+                    <div class="wo-ex-muscle-dot" style="background:${color}"></div>
+                    <span class="wo-dex-name">${esc(ex.name)}</span>
+                    <span class="wo-dex-muscle">${mName}</span>
+                </div>`;
+            }).join('');
+            html += '</div></div>';
+        }
+
+        $('wo-detail-body').innerHTML = html;
+        $('wo-detail-modal').classList.remove('hidden');
     }
 
     // ==================== PASSWORD MODAL ====================

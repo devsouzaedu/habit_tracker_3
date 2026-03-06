@@ -1095,6 +1095,650 @@ body {
     color: var(--fail)
 }
 
+/* ===== WORKOUT ===== */
+.wo-hero {
+    text-align: center;
+    padding: 32px 20px 24px;
+    background: linear-gradient(135deg, rgba(230, 0, 42, 0.08), rgba(153, 51, 255, 0.06));
+    border: 1px solid var(--brd);
+    border-radius: var(--r-lg);
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden
+}
+
+.wo-hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--red), #9933ff, var(--red));
+    background-size: 200% 100%;
+    animation: progressShimmer 4s ease-in-out infinite
+}
+
+.wo-hero-icon {
+    font-size: 3rem;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 12px rgba(230, 0, 42, 0.3))
+}
+
+.wo-hero h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--t1);
+    margin-bottom: 4px
+}
+
+.wo-hero p {
+    font-size: 0.85rem;
+    color: var(--t3)
+}
+
+/* PPL Shortcuts */
+.wo-split-shortcuts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap
+}
+
+.wo-split-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em
+}
+
+.wo-split-btn {
+    padding: 7px 16px;
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    color: var(--t2);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s
+}
+
+.wo-split-btn:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--red-sub)
+}
+
+.wo-split-btn.active {
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--red-sub)
+}
+
+/* Muscle Grid */
+.wo-muscle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+    margin-bottom: 20px
+}
+
+.wo-muscle-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg1);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    color: var(--t2);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+    user-select: none
+}
+
+.wo-muscle-chip:hover {
+    border-color: var(--brd-h);
+    color: var(--t1);
+    background: var(--bg2)
+}
+
+.wo-muscle-chip.selected {
+    border-color: var(--red);
+    background: var(--red-sub);
+    color: var(--red)
+}
+
+.wo-muscle-chip .muscle-emoji {
+    font-size: 1.1rem;
+    flex-shrink: 0
+}
+
+/* Start Button */
+.wo-start-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--red);
+    border: none;
+    border-radius: var(--r);
+    color: #fff;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: 0.02em
+}
+
+.wo-start-btn:hover:not(:disabled) {
+    background: var(--red-d);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(230, 0, 42, 0.3)
+}
+
+.wo-start-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed
+}
+
+/* Active Workout Panel */
+.wo-active-panel {
+    background: var(--bg1);
+    border: 1px solid var(--red);
+    border-radius: var(--r-lg);
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 24px rgba(230, 0, 42, 0.08)
+}
+
+.wo-active-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--red), var(--grn), var(--red));
+    background-size: 200% 100%;
+    animation: progressShimmer 3s ease-in-out infinite
+}
+
+.wo-active-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 12px;
+    flex-wrap: wrap
+}
+
+.wo-active-left {
+    display: flex;
+    align-items: center;
+    gap: 14px
+}
+
+.wo-active-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--red);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    animation: pulseLabel 2s ease-in-out infinite
+}
+
+@keyframes pulseLabel {
+
+    0%,
+    100% {
+        opacity: 1
+    }
+
+    50% {
+        opacity: 0.6
+    }
+}
+
+.wo-active-timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--t1);
+    letter-spacing: 0.05em
+}
+
+.wo-active-actions {
+    display: flex;
+    gap: 8px
+}
+
+.wo-muscles-selected {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px
+}
+
+.wo-muscle-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--bg2);
+    border: 1px solid var(--brd);
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--t2)
+}
+
+/* Exercise List in Active Workout */
+.wo-exercise-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+.wo-ex-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--bg);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    transition: all .2s;
+    animation: slideIn .3s ease
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px)
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0)
+    }
+}
+
+.wo-ex-card:hover {
+    border-color: var(--brd-h)
+}
+
+.wo-ex-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1
+}
+
+.wo-ex-muscle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0
+}
+
+.wo-ex-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--t1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
+.wo-ex-muscle-label {
+    font-size: 0.7rem;
+    color: var(--t3);
+    margin-left: 6px
+}
+
+.wo-ex-remove {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--t3);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all .15s;
+    flex-shrink: 0
+}
+
+.wo-ex-remove:hover {
+    border-color: var(--fail-br);
+    color: var(--fail);
+    background: var(--fail-bg)
+}
+
+/* Workout History */
+.wo-history-section {
+    margin-top: 24px
+}
+
+.wo-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px
+}
+
+.wo-history-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--t3);
+    background: var(--bg2);
+    padding: 3px 8px;
+    border-radius: 10px
+}
+
+.wo-history {
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+.wo-history-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    background: var(--bg1);
+    border: 1px solid var(--brd);
+    border-radius: var(--r-lg);
+    cursor: pointer;
+    transition: all .2s
+}
+
+.wo-history-card:hover {
+    border-color: var(--brd-h);
+    background: var(--bg2)
+}
+
+.wo-h-date {
+    text-align: center;
+    min-width: 46px
+}
+
+.wo-h-date .wo-h-day {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--t1);
+    line-height: 1
+}
+
+.wo-h-date .wo-h-month {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    margin-top: 2px
+}
+
+.wo-h-divider {
+    width: 1px;
+    height: 36px;
+    background: var(--brd);
+    flex-shrink: 0
+}
+
+.wo-h-info {
+    flex: 1;
+    min-width: 0
+}
+
+.wo-h-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px
+}
+
+.wo-h-muscles {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--t1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
+.wo-h-duration {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--red);
+    background: var(--red-sub);
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0
+}
+
+.wo-h-exercises {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap
+}
+
+.wo-h-ex-tag {
+    font-size: 0.68rem;
+    color: var(--t3);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--brd)
+}
+
+.wo-h-ex-more {
+    font-size: 0.68rem;
+    color: var(--t3);
+    padding: 2px 4px
+}
+
+/* Exercise Picker Modal */
+.modal-wide {
+    width: 520px;
+    max-width: 95vw
+}
+
+.ex-muscle-tabs {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 12px 0
+}
+
+.ex-muscle-tab {
+    padding: 5px 12px;
+    background: var(--bg);
+    border: 1px solid var(--brd);
+    border-radius: 20px;
+    color: var(--t3);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s
+}
+
+.ex-muscle-tab:hover {
+    border-color: var(--brd-h);
+    color: var(--t2)
+}
+
+.ex-muscle-tab.active {
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--red-sub)
+}
+
+.ex-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 320px;
+    overflow-y: auto;
+    margin-bottom: 14px
+}
+
+.ex-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    cursor: pointer;
+    transition: all .15s
+}
+
+.ex-item:hover {
+    border-color: var(--red);
+    background: var(--red-sub)
+}
+
+.ex-item-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0
+}
+
+.ex-item-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--t1)
+}
+
+.ex-item-muscle {
+    font-size: 0.7rem;
+    color: var(--t3)
+}
+
+.ex-item-add {
+    font-size: 0.75rem;
+    color: var(--red);
+    font-weight: 700;
+    flex-shrink: 0
+}
+
+.ex-custom-row {
+    display: flex;
+    gap: 8px;
+    align-items: center
+}
+
+.ex-custom-row .input {
+    flex: 1
+}
+
+/* Workout Detail Modal */
+.wo-detail-section {
+    margin-bottom: 16px
+}
+
+.wo-detail-section .wo-detail-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px
+}
+
+.wo-detail-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px
+}
+
+.wo-detail-stat {
+    background: var(--bg);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    padding: 12px;
+    text-align: center
+}
+
+.wo-detail-stat .wo-ds-val {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--t1)
+}
+
+.wo-detail-stat .wo-ds-lbl {
+    display: block;
+    font-size: 0.68rem;
+    color: var(--t3);
+    margin-top: 2px;
+    text-transform: uppercase
+}
+
+.wo-detail-muscles {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 16px
+}
+
+.wo-detail-exercises {
+    display: flex;
+    flex-direction: column;
+    gap: 6px
+}
+
+.wo-detail-ex {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border: 1px solid var(--brd);
+    border-radius: var(--r)
+}
+
+.wo-detail-ex .wo-ex-muscle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0
+}
+
+.wo-detail-ex .wo-dex-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--t1)
+}
+
+.wo-detail-ex .wo-dex-muscle {
+    font-size: 0.7rem;
+    color: var(--t3);
+    margin-left: auto
+}
+
 /* ===== DASHBOARD ===== */
 .period-pills {
     display: flex;
@@ -2144,6 +2788,77 @@ body {
         max-width: 360px;
         margin: 0 16px;
         padding: 32px 24px
+    }
+
+    /* ---- WORKOUT ---- */
+    .wo-muscle-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 6px
+    }
+
+    .wo-active-header {
+        flex-direction: column;
+        align-items: flex-start
+    }
+
+    .wo-active-timer {
+        font-size: 1.3rem
+    }
+
+    .wo-active-actions {
+        width: 100%
+    }
+
+    .wo-active-actions .btn-red-outline,
+    .wo-active-actions .btn-red {
+        flex: 1
+    }
+
+    .wo-split-shortcuts {
+        gap: 6px
+    }
+
+    .wo-split-btn {
+        padding: 6px 12px;
+        font-size: 0.78rem
+    }
+
+    .wo-hero {
+        padding: 24px 16px 20px
+    }
+
+    .wo-hero-icon {
+        font-size: 2.4rem
+    }
+
+    .wo-hero h2 {
+        font-size: 1.1rem
+    }
+
+    .wo-history-card {
+        padding: 12px 14px;
+        gap: 10px
+    }
+
+    .wo-h-muscles {
+        font-size: 0.78rem
+    }
+
+    .wo-detail-stats {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px
+    }
+
+    .wo-detail-stat {
+        padding: 10px 6px
+    }
+
+    .wo-detail-stat .wo-ds-val {
+        font-size: 0.95rem
+    }
+
+    .wo-ex-remove {
+        opacity: 0.6
     }
 }
 

@@ -14,7 +14,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=8">
 </head>
 
 <body>
@@ -68,6 +68,16 @@
                         <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                     </svg>
                     <span>Finanças</span>
+                </button>
+                <button class="sidebar-btn" data-view="workout" title="Treino">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6.5 6.5a2 2 0 013 0l0 11a2 2 0 01-3 0z" />
+                        <path d="M14.5 6.5a2 2 0 013 0l0 11a2 2 0 01-3 0z" />
+                        <path d="M4 9v6" />
+                        <path d="M20 9v6" />
+                        <path d="M9 12h6" />
+                    </svg>
+                    <span>Treino</span>
                 </button>
                 <button class="sidebar-btn" data-view="dashboard" title="Dashboard">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -184,6 +194,55 @@
                     </div>
                     <div id="fin-log"></div>
                     <div id="fin-empty" class="empty-msg-sm">Nenhuma movimentação</div>
+                </div>
+            </section>
+
+            <!-- ===== WORKOUT ===== -->
+            <section id="workout-view" class="view hidden">
+                <!-- Active Workout Panel -->
+                <div id="wo-active-panel" class="wo-active-panel hidden">
+                    <div class="wo-active-header">
+                        <div class="wo-active-left">
+                            <span class="wo-active-label">🏋️ TREINO EM ANDAMENTO</span>
+                            <span class="wo-active-timer" id="wo-timer">00:00:00</span>
+                        </div>
+                        <div class="wo-active-actions">
+                            <button id="wo-add-exercise-btn" class="btn-red-outline">+ Exercício</button>
+                            <button id="wo-finish-btn" class="btn-red">Finalizar</button>
+                        </div>
+                    </div>
+                    <div class="wo-muscles-selected" id="wo-muscles-selected"></div>
+                    <div class="wo-exercise-list" id="wo-exercise-list"></div>
+                </div>
+
+                <!-- Start Workout -->
+                <div id="wo-start-panel" class="wo-start-panel">
+                    <div class="wo-hero">
+                        <div class="wo-hero-icon">💪</div>
+                        <h2>Registrar Treino</h2>
+                        <p>Selecione os músculos que vai treinar e inicie</p>
+                    </div>
+
+                    <div class="wo-split-shortcuts">
+                        <span class="wo-split-label">Atalhos PPL:</span>
+                        <button class="wo-split-btn" data-split="push">🅿️ Push</button>
+                        <button class="wo-split-btn" data-split="pull">🔙 Pull</button>
+                        <button class="wo-split-btn" data-split="legs">🦵 Legs</button>
+                    </div>
+
+                    <div class="wo-muscle-grid" id="wo-muscle-grid"></div>
+
+                    <button id="wo-start-btn" class="wo-start-btn" disabled>▶ Iniciar Treino</button>
+                </div>
+
+                <!-- Workout History -->
+                <div class="wo-history-section">
+                    <div class="wo-history-header">
+                        <span class="card-title">📋 HISTÓRICO DE TREINOS</span>
+                        <span class="wo-history-count" id="wo-history-count"></span>
+                    </div>
+                    <div id="wo-history" class="wo-history"></div>
+                    <div id="wo-history-empty" class="empty-msg-sm">Nenhum treino registrado ainda</div>
                 </div>
             </section>
 
@@ -341,9 +400,42 @@
         </div>
     </div>
 
+    <!-- ===== MODAL: EXERCISE PICKER ===== -->
+    <div id="exercise-modal" class="overlay hidden">
+        <div class="modal modal-wide">
+            <div class="modal-top">
+                <h3>Adicionar Exercício</h3><button class="close-btn" data-close="exercise-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="ex-search" class="input" placeholder="Buscar exercício...">
+                <div id="ex-muscle-tabs" class="ex-muscle-tabs"></div>
+                <div id="ex-list" class="ex-list"></div>
+                <div class="ex-custom-row">
+                    <input type="text" id="ex-custom-name" class="input" placeholder="Exercício personalizado...">
+                    <button id="ex-custom-add" class="btn-red-outline">+ Adicionar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: WORKOUT DETAIL ===== -->
+    <div id="wo-detail-modal" class="overlay hidden">
+        <div class="modal modal-wide">
+            <div class="modal-top">
+                <h3 id="wo-detail-title">Detalhes do Treino</h3><button class="close-btn"
+                    data-close="wo-detail-modal">✕</button>
+            </div>
+            <div class="modal-body" id="wo-detail-body"></div>
+            <div class="modal-foot">
+                <button id="wo-detail-del" class="btn-fail">Excluir Treino</button>
+                <button class="btn-ghost" data-close="wo-detail-modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="app.js?v=7"></script>
+    <script src="app.js?v=8"></script>
 </body>
 
 </html>
