@@ -210,6 +210,62 @@
         input.onkeydown = e => { if (e.key === 'Enter') attempt(); };
     }
 
+    // ==================== AUTO-FAIL UNCHECKED HABITS ====================
+    function markPastUncheckedAsFail() {
+        const habits = getH(), rec = getR(), td = now();
+        if (!habits.length) return;
+
+        let changed = false;
+        habits.forEach(hab => {
+            // Start from habit creation date (or max 90 days ago)
+            const maxPast = addD(td, -90);
+            let startDate = hab.created ? new Date(hab.created) : maxPast;
+            startDate.setHours(0, 0, 0, 0);
+            if (startDate < maxPast) startDate = maxPast;
+
+            // Iterate from startDate up to yesterday (not today)
+            let d = new Date(startDate);
+            while (d < td) {
+                const key = rk(hab.id, d);
+                if (!rec[key]) {
+                    rec[key] = 'fail';
+                    changed = true;
+                }
+                d = addD(d, 1);
+            }
+        });
+
+        if (changed) {
+            svR(rec);
+            console.log('[AUTO-FAIL] Hábitos não marcados no passado foram definidos como falha');
+        }
+    }
+
+    function scheduleMidnightCheck() {
+        const runAtMidnight = () => {
+            markPastUncheckedAsFail();
+            // Re-render if tracker is visible
+            if (!$('tracker-view').classList.contains('hidden')) {
+                renderTracker();
+            }
+            if (!$('dashboard-view').classList.contains('hidden')) {
+                renderDash();
+            }
+            // Schedule next midnight check
+            scheduleMidnightCheck();
+        };
+
+        // Calculate ms until next 00:01
+        const nowMs = new Date();
+        const next = new Date(nowMs);
+        next.setDate(next.getDate() + 1);
+        next.setHours(0, 1, 0, 0); // 00:01:00
+        const msUntilMidnight = next - nowMs;
+
+        console.log(`[AUTO-FAIL] Próxima verificação em ${Math.round(msUntilMidnight / 60000)} minutos`);
+        setTimeout(runAtMidnight, msUntilMidnight);
+    }
+
     // ==================== BOOT ====================
     function boot() {
         const n = new Date();
@@ -222,7 +278,14 @@
         initNoteModal();
         initFinance();
         initPwModal();
+
+        // Mark past unchecked habits as fail on boot
+        markPastUncheckedAsFail();
+
         renderTracker();
+
+        // Schedule midnight auto-fail check
+        scheduleMidnightCheck();
     }
 
     // ==================== NAV ====================
