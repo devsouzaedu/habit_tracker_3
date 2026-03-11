@@ -366,6 +366,7 @@
 
         // Initialize workout
         initWorkout();
+        initWorkoutTabs();
     }
 
     // ==================== NAV ====================
@@ -1656,6 +1657,270 @@
         </svg></div>`;
 
         return front + back;
+    }
+
+    // ==================== WORKOUT TABS ====================
+    function initWorkoutTabs() {
+        const tabs = document.querySelectorAll('.wo-tab');
+        tabs.forEach(tab => {
+            tab.onclick = () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelectorAll('.wo-tab-content').forEach(c => c.classList.add('hidden'));
+                const target = tab.dataset.woTab;
+                $(`wo-tab-${target}`).classList.remove('hidden');
+                if (target === 'coach' && !coachInitialized) {
+                    initCoach();
+                }
+            };
+        });
+    }
+
+    // ==================== VEGETA COACH ====================
+    let coachInitialized = false;
+    let coachMessages = [];
+
+    const VEGETA_RESPONSES = {
+        greetings: [
+            "Hmph... Então você veio treinar comigo? Bom, pelo menos tem bom gosto. Eu sou o Príncipe dos Saiyajins! Não espere que eu pegue leve com você, inseto! 💪",
+            "Escute bem, verme! Eu não perco meu tempo com fracos. Se você está aqui, é melhor dar TUDO de si! Caso contrário... FINAL FLASH! 🔥",
+            "Hmpf! Mais um terrestre querendo ficar forte? Está bem... Eu, Vegeta, o Príncipe de todos os Saiyajins, vou transformar esse corpo patético! Não me decepcione! ⚡"
+        ],
+        'treino-push': [
+            `ESCUTE BEM, INSETO! Hoje vamos destruir Peito, Ombro e Tríceps! Um verdadeiro guerreiro não pula o treino de PUSH!\n\n🫁 **PEITO:**\n• Supino Reto — 4x8-10 (PESO PESADO, sem choro!)\n• Supino Inclinado — 4x10\n• Crossover — 3x12-15\n• Flexão — 3 séries até a FALHA!\n\n🏔️ **OMBRO:**\n• Desenvolvimento — 4x8-10\n• Elevação Lateral — 4x12-15\n• Elevação Frontal — 3x12\n\n💪 **TRÍCEPS:**\n• Tríceps Corda — 4x12\n• Tríceps Testa — 3x10\n• Mergulho — 3 séries até FALHA!\n\nDescanso: 60-90s entre séries. Se você descansar mais que isso, eu vou te mandar pro outro mundo com um Big Bang Attack! 💥`,
+            `Hmph! Então quer treino de PUSH? Está certo! Eu treinava na Câmara de Gravidade a 500G, então não reclame!\n\n🫁 **PEITO — Destruição Total:**\n• Supino Reto — 5x6 (carga MÁXIMA!)\n• Crucifixo Inclinado — 4x10\n• Peck Deck — 3x12\n• Voador — 3x15 (queimação!)\n\n🏔️ **OMBRO — Poder Saiyajin:**\n• Arnold Press — 4x10\n• Elevação Lateral — 5x15\n• Face Pull — 3x15\n\n💪 **TRÍCEPS — Armas de Guerra:**\n• Tríceps Francês — 4x10\n• Tríceps Barra — 3x12\n• Tríceps Coice — 3x12\n\nEsse é o treino de um PRÍNCIPE! Agora vá e supere seus limites! 👑`
+        ],
+        'treino-pull': [
+            `Hmpf! Dia de PULL! Costas e Bíceps! Se o Kakaroto consegue fazer barra, VOCÊ TAMBÉM CONSEGUE!\n\n🔙 **COSTAS — Muralha Saiyajin:**\n• Puxada Frontal — 4x10\n• Remada Curvada — 4x8-10 (PESADO!)\n• Remada Cavaleiro — 3x10\n• Pullover — 3x12\n• Pull-up — 3 séries até FALHA!\n\n💪 **BÍCEPS — Braços de Guerreiro:**\n• Rosca Direta — 4x10\n• Rosca Martelo — 3x12\n• Rosca Scott — 3x10\n• Rosca Concentrada — 3x12\n\n🔺 **TRAPÉZIO:**\n• Encolhimento Halteres — 4x15\n• Face Pull — 3x15\n\nSe suas costas não doerem amanhã, é porque você treinou como um verme! SUPERE SEUS LIMITES! ⚡`,
+            `Escuta aqui, terrestre! Treino de PULL é onde se forja as verdadeiras COSTAS DE GUERREIRO!\n\n🔙 **COSTAS:**\n• Barra Fixa — 4x falha\n• Remada Baixa — 4x10\n• Puxada Triângulo — 3x12\n• Remada Unilateral — 3x10 cada lado\n\n💪 **BÍCEPS:**\n• Rosca Barra W — 4x10\n• Rosca Alternada — 3x12\n• Rosca Inversa — 3x12\n\n🔺 **TRAPÉZIO:**\n• Encolhimento Barra — 4x12\n• Farmer Walk — 3x30s\n\nKakaroto pode ter o Ultra Instinto, mas NINGUÉM tem costas como as MINHAS! 💪`
+        ],
+        'treino-legs': [
+            `HAHAHAHA! DIA DE PERNA! O dia que separa os GUERREIROS dos INSETOS! Não ouse pular esse treino!\n\n🦵 **QUADRÍCEPS — PODER SAIYAJIN:**\n• Agachamento Livre — 5x6-8 (PESADO OU VÁ EMBORA!)\n• Leg Press — 4x10-12\n• Cadeira Extensora — 4x12\n• Afundo — 3x10 cada perna\n\n🦵 **POSTERIOR:**\n• Stiff — 4x10\n• Cadeira Flexora — 4x12\n• Mesa Flexora — 3x12\n\n🍑 **GLÚTEOS:**\n• Hip Thrust — 4x12\n• Búlgaro — 3x10 cada perna\n\n🦶 **PANTURRILHA:**\n• Panturrilha em Pé — 5x15\n• Panturrilha Sentado — 4x20\n\nPernas fracas = Guerreiro FRACO! O poder vem do CHÃO! Agora AGACHE! 🔥`,
+            `Hmph! Então quer treinar pernas? Ótimo! Na câmara de gravidade 500G, cada agachamento era um teste de SOBREVIVÊNCIA!\n\n🦵 **QUADRÍCEPS:**\n• Agachamento Frontal — 4x8\n• Agachamento Hack — 4x10\n• Passada — 3x12 cada perna\n• Sissy Squat — 3x15\n\n🦵 **POSTERIOR:**\n• Levantamento Terra — 4x6 (PESADO!)\n• Good Morning — 3x10\n• Leg Curl Deitado — 3x12\n\n🍑 **GLÚTEOS:**\n• Agachamento Sumô — 4x12\n• Elevação Pélvica — 3x15\n• Kickback — 3x12\n\n🦶 **PANTURRILHA:**\n• Panturrilha no Leg Press — 4x15\n• Panturrilha Unilateral — 3x15\n\nQuem pula leg day NÃO MERECE ser chamado de guerreiro! 👑`
+        ],
+        motivacao: [
+            "ESCUTE BEM, VERME! Eu perdi para o Kakaroto INÚMERAS vezes, mas NUNCA desisti! Cada derrota me tornou mais FORTE! Eu sou o Príncipe dos Saiyajins, e meu orgulho NUNCA me deixa parar! Agora levante essa bunda do sofá e vá TREINAR! 🔥💥⚡",
+            "Hmph! Quer desistir? PATÉTICO! Quando eu explodia planetas inteiros, achava que ninguém seria páreo pra mim. Mas o Kakaroto me mostrou que SEMPRE há um nível acima! Cada repetição te leva mais perto de SUPERAR SEUS LIMITES! Agora PARE DE RECLAMAR E TREINE! 👑",
+            "Um verdadeiro guerreiro NÃO PRECISA de motivação! A motivação vem e vai como o vento. O que você precisa é de DISCIPLINA e ORGULHO! Eu treino TODOS os dias, mesmo quando meu corpo diz NÃO! Você acha que foi fácil alcançar o Super Saiyajin Blue? NADA É FÁCIL! AGORA VÁ! 💪🔥",
+            "Você está perdendo tempo pedindo motivação quando deveria estar AGACHANDO! Cada segundo parado é um segundo que o Kakaroto está ficando MAIS FORTE que você! Você quer ser um verme para sempre? LEVANTE-SE E LUTE! FINAL FLASH dessa preguiça! ⚡💥",
+            "Tsc! Nos dias mais difíceis, lembre-se: EU, Vegeta, nascido princípe da raça mais poderosa do universo... tive que engolir meu orgulho VÁRIAS vezes. Mas NUNCA parei de treinar! Cada gota de suor é um passo para SUPERAR A SI MESMO! Agora MOSTRE SEU PODER! 🔥👑"
+        ],
+        aquecimento: [
+            "Hmph! Aquecimento? Eu normalmente já começo DESTRUINDO, mas até mesmo um Saiyajin precisa aquecer... NÃO CONTE A NINGUÉM QUE EU DISSE ISSO!\n\n♨️ **AQUECIMENTO (10 min):**\n1. 🏃 Esteira leve ou pular corda — 3 min\n2. 🔄 Rotação de ombros — 20 reps\n3. 🔄 Rotação de quadril — 15 cada lado\n4. 🦵 Agachamento sem peso — 15 reps\n5. 💪 Flexão — 10 reps leves\n6. 🧘 Alongamento dinâmico — 2 min\n7. ⬆️ Elevação lateral leve — 12 reps\n\nDepois disso, faça 1-2 séries de aquecimento do primeiro exercício com 50% da carga. Não quero ver nenhum inseto se machucando por ESTUPIDEZ! 🔥"
+        ],
+        descanso: [
+            "DESCANSO?! Hmph! Está bem, até eu preciso descansar às vezes... MAS NÃO MUITO!\n\n⏱️ **TEMPOS IDEAIS DE DESCANSO:**\n\n• **Força (1-5 reps, pesado):** 2-3 minutos\n• **Hipertrofia (8-12 reps):** 60-90 segundos\n• **Resistência (15+ reps):** 30-60 segundos\n• **Compostos pesados** (Agachamento, Terra): 2-3 min\n• **Isolados** (Rosca, Extensora): 45-60 seg\n\n⚠️ Se você descansa MAIS de 3 minutos, não está treinando — está PASSEANDO na academia! Eu treino na câmara de gravidade sem parar! Mas... eu sou um Saiyajin. Você pode descansar... UM POUCO! 💪"
+        ]
+    };
+
+    const VEGETA_KEYWORD_RESPONSES = [
+        {
+            keywords: ['peito', 'supino', 'peitoral', 'chest'],
+            responses: [
+                "Peito, hein? Bom! Supino Reto é a BASE! 4 séries de 8-10 reps com carga que te faça SOFRER! Depois Crucifixo Inclinado 4x10, e Crossover 3x12. Um Saiyajin de verdade NUNCA pula supino! 💪🔥",
+                "Hmph! Quer desenvolver peito? Comece com Supino Inclinado 4x8 (foca a parte superior!), depois Peck Deck 3x12 e termine com Flexão até a FALHA! Se não doer, você está fazendo ERRADO, inseto! 🫁"
+            ]
+        },
+        {
+            keywords: ['costas', 'dorsal', 'barra', 'puxada', 'back'],
+            responses: [
+                "COSTAS! A parte mais NOBRE do corpo de um guerreiro! Puxada Frontal 4x10, Remada Curvada 4x8 PESADA, e termine com Pull-up até a falha! Costas largas = PRESENÇA DE GUERREIRO! 🔙⚡",
+                "Se quer costas de guerreiro Saiyajin, faça: Barra Fixa 4x falha, Remada Cavaleiro 4x10, Pullover 3x12. NADA constrói poder como as remadas! 💪"
+            ]
+        },
+        {
+            keywords: ['biceps', 'braco', 'braço', 'rosca', 'arm'],
+            responses: [
+                "Bíceps? Tsc! Rosca Direta 4x10 com barra, Rosca Martelo 3x12 e Rosca Concentrada 3x12. E NADA de ficar balançando o corpo! Execução PERFEITA ou nem faça, verme! 💪",
+                "Hmph! Quer braços de guerreiro? Rosca Scott 4x10 (sem trapacear!), Rosca Alternada 3x12 e termine com Rosca Inversa para os antebraços. UM SAIYAJIN USA TODOS OS MÚSCULOS! ⚡"
+            ]
+        },
+        {
+            keywords: ['triceps', 'tríceps'],
+            responses: [
+                "Tríceps é 2/3 do braço, IDIOTA! Se quer braço grande, FOQUE NO TRÍCEPS! Tríceps Corda 4x12, Tríceps Testa 3x10 e Mergulho 3x falha! AGORA VÁ! 💪🔥"
+            ]
+        },
+        {
+            keywords: ['perna', 'pernas', 'agachamento', 'legs', 'quadriceps'],
+            responses: [
+                "DIA DE PERNA! O dia mais GLORIOSO! Agachamento Livre 5x6, Leg Press 4x10, Cadeira Extensora 4x12! Se você pula leg day, VOCÊ É MAIS FRACO QUE O YAMCHA! 🦵🔥",
+                "HAHAHA! Perna fraca = Guerreiro PATÉTICO! Agachamento Frontal 4x8, Stiff 4x10, Hip Thrust 4x12, Panturrilha 5x15! O poder vem do CHÃO! 🦵⚡"
+            ]
+        },
+        {
+            keywords: ['ombro', 'ombros', 'deltóide', 'shoulder'],
+            responses: [
+                "OMBROS LARGOS é o que faz um guerreiro parecer PODEROSO! Desenvolvimento Militar 4x8, Elevação Lateral 5x15, Arnold Press 3x10! Ombros de guerreiro Saiyajin! 🏔️💪"
+            ]
+        },
+        {
+            keywords: ['abdomen', 'abdômen', 'abdominal', 'abs', 'barriga', 'tanquinho'],
+            responses: [
+                "Abdômen?! Prancha 3x1min, Abdominal Crunch 4x20, Elevação de Pernas 3x15, Russian Twist 3x20! Mas escuta: ABDÔMEN SE FAZ NA COZINHA, inseto! Para de comer porcaria! 🎯🔥"
+            ]
+        },
+        {
+            keywords: ['dieta', 'comer', 'alimentação', 'comida', 'proteina', 'proteína', 'nutrição'],
+            responses: [
+                "Hmph! Quer saber de dieta? UM SAIYAJIN COME MUITO! Mas com QUALIDADE! Proteína em TODAS as refeições — frango, ovos, carne! Arroz e batata para energia! Verduras porque... até guerreiros precisam de vitaminas! E NADA de junk food, INSETO! 🥗👑",
+                "Dieta de um guerreiro Saiyajin: 2g de proteína por kg de peso, carboidratos complexos antes do treino, e MUITA comida! Eu como literalmente TONELADAS! Mas controlado! Nada de besteira! 🍗💪"
+            ]
+        },
+        {
+            keywords: ['dormir', 'sono', 'descansar', 'recovery', 'recuperação'],
+            responses: [
+                "Tsc! Até mesmo o Príncipe dos Saiyajins precisa dormir! 7-8 horas por noite, MÍNIMO! Os músculos crescem NO DESCANSO, não no treino, seu verme ignorante! Sem descanso adequado, você está PERDENDO TEMPO na academia! 😤💤"
+            ]
+        },
+        {
+            keywords: ['goku', 'kakaroto', 'kakarot'],
+            responses: [
+                "NÃO ME FALE DO KAKAROTO! Aquele... aquele Saiyajin de classe baixa! Sempre um passo à minha frente! MAS EU VOU SUPERÁ-LO! E VOCÊ VAI ME AJUDAR NESSE TREINO! AGORA FOCO! 😤⚡💥",
+                "Kakaroto?! COMO OUSA mencionar esse nome na minha presença?! Ele pode ter o Ultra Instinto, mas EU tenho o Ultra Ego! E meu ORGULHO é minha maior arma! Agora PARE de falar dele e TREINE! 👑🔥"
+            ]
+        },
+        {
+            keywords: ['obrigado', 'valeu', 'thanks', 'brigado'],
+            responses: [
+                "Hmph! Não me agradeça, inseto! Eu não faço isso por VOCÊ! Eu faço porque um verdadeiro guerreiro forja OUTROS guerreiros! Agora pare de ser sentimental e VÁ TREINAR! 😤💪",
+                "Tsc! Sentimentalismo é coisa de TERRESTRE FRACO! Não preciso dos seus agradecimentos. A única recompensa que aceito é ver você SUPERANDO SEUS LIMITES! Agora SAIA DAQUI e TREINE! 👑"
+            ]
+        }
+    ];
+
+    const VEGETA_FALLBACK = [
+        "Hmph! Não entendi sua pergunta patética! Fala direito, inseto! Pergunte sobre TREINOS, EXERCÍCIOS ou peça MOTIVAÇÃO! Um Saiyajin não perde tempo com conversa fiada! 😤",
+        "Tsc! Eu não sou seu amiguinho de conversa, VERME! Me pergunte sobre treinos de Push, Pull, Legs, exercícios específicos ou peça motivação! Foco no que IMPORTA! 💪",
+        "Você está desperdiçando o tempo do PRÍNCIPE DOS SAIYAJINS com essa pergunta?! Pergunte sobre TREINOS ou exercícios! Ou use os botões rápidos aí embaixo! 👑",
+        "INSETO! Se não sabe o que perguntar, use os atalhos de treino! Push, Pull ou Legs! Ou peça motivação! Não tenho PACIÊNCIA pra conversa fiada! ⚡🔥"
+    ];
+
+    function initCoach() {
+        if (coachInitialized) return;
+        coachInitialized = true;
+
+        // Welcome message
+        const greeting = VEGETA_RESPONSES.greetings[Math.floor(Math.random() * VEGETA_RESPONSES.greetings.length)];
+        addCoachMessage('vegeta', greeting);
+
+        // Quick action buttons
+        document.querySelectorAll('.coach-quick-btn').forEach(btn => {
+            btn.onclick = () => {
+                const action = btn.dataset.action;
+                addCoachMessage('user', btn.textContent.trim());
+                setTimeout(() => {
+                    processCoachAction(action);
+                }, 400);
+            };
+        });
+
+        // Send message
+        $('coach-send').onclick = () => sendCoachMessage();
+        $('coach-input').onkeydown = e => { if (e.key === 'Enter') sendCoachMessage(); };
+    }
+
+    function sendCoachMessage() {
+        const input = $('coach-input');
+        const msg = input.value.trim();
+        if (!msg) return;
+        input.value = '';
+        addCoachMessage('user', msg);
+        setTimeout(() => {
+            const response = getVegetaResponse(msg);
+            addCoachMessage('vegeta', response);
+        }, 600 + Math.random() * 800);
+    }
+
+    function processCoachAction(action) {
+        const responses = VEGETA_RESPONSES[action];
+        if (responses) {
+            const resp = responses[Math.floor(Math.random() * responses.length)];
+            addCoachMessage('vegeta', resp);
+        }
+    }
+
+    function getVegetaResponse(msg) {
+        const lower = msg.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+        // Check keyword responses
+        for (const entry of VEGETA_KEYWORD_RESPONSES) {
+            for (const kw of entry.keywords) {
+                const kwNorm = kw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                if (lower.includes(kwNorm)) {
+                    return entry.responses[Math.floor(Math.random() * entry.responses.length)];
+                }
+            }
+        }
+
+        // Check for action keywords
+        if (lower.includes('push') || (lower.includes('peito') && lower.includes('ombro'))) {
+            return VEGETA_RESPONSES['treino-push'][Math.floor(Math.random() * VEGETA_RESPONSES['treino-push'].length)];
+        }
+        if (lower.includes('pull') || (lower.includes('costa') && lower.includes('bicep'))) {
+            return VEGETA_RESPONSES['treino-pull'][Math.floor(Math.random() * VEGETA_RESPONSES['treino-pull'].length)];
+        }
+        if (lower.includes('legs') || lower.includes('perna')) {
+            return VEGETA_RESPONSES['treino-legs'][Math.floor(Math.random() * VEGETA_RESPONSES['treino-legs'].length)];
+        }
+        if (lower.includes('motiv') || lower.includes('animo') || lower.includes('desanima') || lower.includes('pregui')) {
+            return VEGETA_RESPONSES.motivacao[Math.floor(Math.random() * VEGETA_RESPONSES.motivacao.length)];
+        }
+        if (lower.includes('aquec') || lower.includes('warm')) {
+            return VEGETA_RESPONSES.aquecimento[0];
+        }
+        if (lower.includes('descanso') || lower.includes('intervalo') || lower.includes('rest') || lower.includes('pausa')) {
+            return VEGETA_RESPONSES.descanso[0];
+        }
+        if (lower.includes('ola') || lower.includes('oi') || lower.includes('hey') || lower.includes('eai') || lower.includes('fala')) {
+            return VEGETA_RESPONSES.greetings[Math.floor(Math.random() * VEGETA_RESPONSES.greetings.length)];
+        }
+
+        // Fallback
+        return VEGETA_FALLBACK[Math.floor(Math.random() * VEGETA_FALLBACK.length)];
+    }
+
+    function addCoachMessage(sender, text) {
+        const chat = $('coach-chat');
+        const msgEl = document.createElement('div');
+        msgEl.className = `coach-msg coach-msg-${sender}`;
+
+        if (sender === 'vegeta') {
+            // Show typing indicator first
+            const typingEl = document.createElement('div');
+            typingEl.className = 'coach-msg coach-msg-vegeta coach-typing';
+            typingEl.innerHTML = `
+                <div class="coach-msg-avatar">
+                    <img src="public/images/vegeta_png.png" alt="V">
+                </div>
+                <div class="coach-msg-bubble">
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
+                </div>`;
+            chat.appendChild(typingEl);
+            chat.scrollTop = chat.scrollHeight;
+
+            setTimeout(() => {
+                typingEl.remove();
+                // Format text with markdown-lite
+                const formatted = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n/g, '<br>');
+
+                msgEl.innerHTML = `
+                    <div class="coach-msg-avatar">
+                        <img src="public/images/vegeta_png.png" alt="V">
+                    </div>
+                    <div class="coach-msg-bubble">${formatted}</div>`;
+                chat.appendChild(msgEl);
+                chat.scrollTop = chat.scrollHeight;
+            }, 800 + Math.random() * 600);
+        } else {
+            msgEl.innerHTML = `<div class="coach-msg-bubble">${esc(text)}</div>`;
+            chat.appendChild(msgEl);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        coachMessages.push({ sender, text, time: new Date().toISOString() });
     }
 
     // ==================== PASSWORD MODAL ====================

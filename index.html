@@ -14,7 +14,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=9">
+    <link rel="stylesheet" href="style.css?v=10">
 </head>
 
 <body>
@@ -199,51 +199,112 @@
 
             <!-- ===== WORKOUT ===== -->
             <section id="workout-view" class="view hidden">
-                <!-- Active Workout Panel -->
-                <div id="wo-active-panel" class="wo-active-panel hidden">
-                    <div class="wo-active-header">
-                        <div class="wo-active-left">
-                            <span class="wo-active-label">🏋️ TREINO EM ANDAMENTO</span>
-                            <span class="wo-active-timer" id="wo-timer">00:00:00</span>
+
+                <!-- Workout Tabs -->
+                <div class="wo-tabs">
+                    <button class="wo-tab active" data-wo-tab="treino">🏋️ Treino</button>
+                    <button class="wo-tab" data-wo-tab="coach">👊 Coach</button>
+                </div>
+
+                <!-- TAB: TREINO -->
+                <div id="wo-tab-treino" class="wo-tab-content">
+                    <!-- Active Workout Panel -->
+                    <div id="wo-active-panel" class="wo-active-panel hidden">
+                        <div class="wo-active-header">
+                            <div class="wo-active-left">
+                                <span class="wo-active-label">🏋️ TREINO EM ANDAMENTO</span>
+                                <span class="wo-active-timer" id="wo-timer">00:00:00</span>
+                            </div>
+                            <div class="wo-active-actions">
+                                <button id="wo-add-exercise-btn" class="btn-red-outline">+ Exercício</button>
+                                <button id="wo-finish-btn" class="btn-red">Finalizar</button>
+                            </div>
                         </div>
-                        <div class="wo-active-actions">
-                            <button id="wo-add-exercise-btn" class="btn-red-outline">+ Exercício</button>
-                            <button id="wo-finish-btn" class="btn-red">Finalizar</button>
+                        <div class="wo-muscles-selected" id="wo-muscles-selected"></div>
+                        <div class="wo-exercise-list" id="wo-exercise-list"></div>
+                    </div>
+
+                    <!-- Start Workout -->
+                    <div id="wo-start-panel" class="wo-start-panel">
+                        <div class="wo-hero">
+                            <div class="wo-hero-icon">💪</div>
+                            <h2>Registrar Treino</h2>
+                            <p>Selecione os músculos que vai treinar e inicie</p>
+                        </div>
+
+                        <div class="wo-split-shortcuts">
+                            <span class="wo-split-label">Atalhos PPL:</span>
+                            <button class="wo-split-btn" data-split="push">🅿️ Push</button>
+                            <button class="wo-split-btn" data-split="pull">🔙 Pull</button>
+                            <button class="wo-split-btn" data-split="legs">🦵 Legs</button>
+                        </div>
+
+                        <div class="wo-muscle-grid" id="wo-muscle-grid"></div>
+
+                        <button id="wo-start-btn" class="wo-start-btn" disabled>▶ Iniciar Treino</button>
+                    </div>
+
+                    <!-- Workout History -->
+                    <div class="wo-history-section">
+                        <div class="wo-history-header">
+                            <span class="card-title">📋 HISTÓRICO DE TREINOS</span>
+                            <span class="wo-history-count" id="wo-history-count"></span>
+                        </div>
+                        <div id="wo-history" class="wo-history"></div>
+                        <div id="wo-history-empty" class="empty-msg-sm">Nenhum treino registrado ainda</div>
+                    </div>
+                </div>
+
+                <!-- TAB: COACH -->
+                <div id="wo-tab-coach" class="wo-tab-content hidden">
+                    <div class="coach-container">
+                        <!-- Coach Header -->
+                        <div class="coach-header">
+                            <div class="coach-avatar-wrap">
+                                <img src="public/images/vegeta_png.png" alt="Vegeta" class="coach-avatar"
+                                    id="coach-avatar">
+                                <div class="coach-status-dot"></div>
+                            </div>
+                            <div class="coach-info">
+                                <div class="coach-name">Vegeta</div>
+                                <div class="coach-title">Príncipe dos Saiyajins • Personal Trainer</div>
+                                <div class="coach-level">
+                                    <span class="coach-power-icon">⚡</span>
+                                    <span>Poder de luta: OVER 9000!</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Area -->
+                        <div class="coach-chat" id="coach-chat">
+                            <!-- Messages will be rendered here -->
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="coach-quick-actions" id="coach-quick-actions">
+                            <button class="coach-quick-btn" data-action="treino-push">🅿️ Treino Push</button>
+                            <button class="coach-quick-btn" data-action="treino-pull">🔙 Treino Pull</button>
+                            <button class="coach-quick-btn" data-action="treino-legs">🦵 Treino Legs</button>
+                            <button class="coach-quick-btn" data-action="motivacao">🔥 Me motive!</button>
+                            <button class="coach-quick-btn" data-action="aquecimento">♨️ Aquecimento</button>
+                            <button class="coach-quick-btn" data-action="descanso">⏱️ Tempo de descanso</button>
+                        </div>
+
+                        <!-- Input -->
+                        <div class="coach-input-wrap">
+                            <input type="text" id="coach-input" class="coach-input" placeholder="Pergunte ao Vegeta..."
+                                autocomplete="off">
+                            <button id="coach-send" class="coach-send-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
                         </div>
                     </div>
-                    <div class="wo-muscles-selected" id="wo-muscles-selected"></div>
-                    <div class="wo-exercise-list" id="wo-exercise-list"></div>
                 </div>
 
-                <!-- Start Workout -->
-                <div id="wo-start-panel" class="wo-start-panel">
-                    <div class="wo-hero">
-                        <div class="wo-hero-icon">💪</div>
-                        <h2>Registrar Treino</h2>
-                        <p>Selecione os músculos que vai treinar e inicie</p>
-                    </div>
-
-                    <div class="wo-split-shortcuts">
-                        <span class="wo-split-label">Atalhos PPL:</span>
-                        <button class="wo-split-btn" data-split="push">🅿️ Push</button>
-                        <button class="wo-split-btn" data-split="pull">🔙 Pull</button>
-                        <button class="wo-split-btn" data-split="legs">🦵 Legs</button>
-                    </div>
-
-                    <div class="wo-muscle-grid" id="wo-muscle-grid"></div>
-
-                    <button id="wo-start-btn" class="wo-start-btn" disabled>▶ Iniciar Treino</button>
-                </div>
-
-                <!-- Workout History -->
-                <div class="wo-history-section">
-                    <div class="wo-history-header">
-                        <span class="card-title">📋 HISTÓRICO DE TREINOS</span>
-                        <span class="wo-history-count" id="wo-history-count"></span>
-                    </div>
-                    <div id="wo-history" class="wo-history"></div>
-                    <div id="wo-history-empty" class="empty-msg-sm">Nenhum treino registrado ainda</div>
-                </div>
             </section>
 
             <!-- ===== DASHBOARD ===== -->
@@ -435,7 +496,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="app.js?v=9"></script>
+    <script src="app.js?v=10"></script>
 </body>
 
 </html>
