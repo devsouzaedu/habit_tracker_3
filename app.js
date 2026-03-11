@@ -567,6 +567,13 @@
     }
 
     // ==================== PROGRESS LINE CHART ====================
+    // Store chart data for tooltip interactions
+    let chartData = null;
+    let chartPoints = null;
+    let chartPadding = null;
+    let chartDimensions = null;
+    let chartHabitsCount = 0;
+
     function renderProgressChart() {
         const canvas = $('progress-canvas');
         if (!canvas) return;
@@ -581,12 +588,16 @@
 
         const habits = getH(), rec = getR(), td = now();
         const numDays = 30;
+        chartHabitsCount = habits.length;
 
         if (!habits.length) {
             ctx.fillStyle = '#5a5a67';
             ctx.font = '12px Inter';
             ctx.textAlign = 'center';
             ctx.fillText('Adicione hábitos para ver o progresso', w / 2, ht / 2);
+            chartData = null;
+            chartPoints = null;
+            removeChartTooltip();
             return;
         }
 
@@ -603,6 +614,8 @@
             data.push({
                 date: d,
                 pct,
+                wins,
+                total: habits.length,
                 label: `${d.getDate()}/${d.getMonth() + 1}`
             });
         }
@@ -646,6 +659,12 @@
             x: p.l + (i / (data.length - 1)) * cw,
             y: p.t + ch - (item.pct / 100) * ch
         }));
+
+        // Store for tooltip
+        chartData = data;
+        chartPoints = points;
+        chartPadding = p;
+        chartDimensions = { w, ht, cw, ch };
 
         // Gradient fill under the line
         const gradient = ctx.createLinearGradient(0, p.t, 0, p.t + ch);
@@ -730,6 +749,141 @@
         ctx.font = 'bold 11px Inter';
         ctx.textAlign = 'right';
         ctx.fillText('Hoje: ' + lastPct + '%', w - p.r, p.t - 6);
+
+        // Setup tooltip interactions
+        setupChartTooltip(canvas, cont);
+    }
+
+    // ==================== CHART TOOLTIP ====================
+    function removeChartTooltip() {
+        const existing = document.querySelector('.chart-tooltip-container');
+        if (existing) existing.remove();
+    }
+
+    function setupChartTooltip(canvas, cont) {
+        // Remove old tooltip elements
+        removeChartTooltip();
+
+        // Create tooltip container (overlay)
+        const tooltipContainer = document.createElement('div');
+        tooltipContainer.className = 'chart-tooltip-container';
+
+        // Crosshair vertical line
+        const crosshair = document.createElement('div');
+        crosshair.className = 'chart-crosshair';
+        tooltipContainer.appendChild(crosshair);
+
+        // Active dot
+        const activeDot = document.createElement('div');
+        activeDot.className = 'chart-active-dot';
+        tooltipContainer.appendChild(activeDot);
+
+        // Tooltip box
+        const tooltip = document.createElement('div');
+        tooltip.className = 'chart-tooltip';
+        tooltipContainer.appendChild(tooltip);
+
+        cont.appendChild(tooltipContainer);
+
+        let isActive = false;
+
+        function findClosestPoint(mouseX) {
+            if (!chartPoints || !chartData) return -1;
+            let minDist = Infinity, closest = -1;
+            chartPoints.forEach((pt, i) => {
+                const dist = Math.abs(pt.x - mouseX);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = i;
+                }
+            });
+            return closest;
+        }
+
+        function showTooltip(mouseX) {
+            if (!chartData || !chartPoints || !chartPadding) return;
+            const idx = findClosestPoint(mouseX);
+            if (idx < 0) return;
+
+            const pt = chartPoints[idx];
+            const d = chartData[idx];
+            const p = chartPadding;
+            const dims = chartDimensions;
+
+            isActive = true;
+            tooltipContainer.classList.add('active');
+
+            // Position crosshair
+            crosshair.style.left = pt.x + 'px';
+            crosshair.style.top = p.t + 'px';
+            crosshair.style.height = dims.ch + 'px';
+
+            // Position active dot
+            activeDot.style.left = pt.x + 'px';
+            activeDot.style.top = pt.y + 'px';
+
+            // Format date nicely
+            const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const dateStr = `${dayNames[d.date.getDay()]}, ${d.label}`;
+
+            // Color based on percentage
+            const pctColor = d.pct >= 60 ? '#00e676' : d.pct >= 30 ? '#ffcc00' : '#ff3b4f';
+
+            // Tooltip content
+            tooltip.innerHTML = `
+                <div class="chart-tt-date">${dateStr}</div>
+                <div class="chart-tt-pct" style="color:${pctColor}">${d.pct}%</div>
+                <div class="chart-tt-detail">${d.wins}/${d.total} hábitos</div>
+            `;
+
+            // Position tooltip — avoid overflow
+            const ttWidth = 130;
+            let ttLeft = pt.x - ttWidth / 2;
+            if (ttLeft < 5) ttLeft = 5;
+            if (ttLeft + ttWidth > dims.w - 5) ttLeft = dims.w - ttWidth - 5;
+
+            const ttTop = pt.y - 72;
+            tooltip.style.left = ttLeft + 'px';
+            tooltip.style.top = (ttTop < 2 ? pt.y + 16 : ttTop) + 'px';
+        }
+
+        function hideTooltip() {
+            isActive = false;
+            tooltipContainer.classList.remove('active');
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            const mouseX = (e.clientX - rect.left);
+            showTooltip(mouseX);
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            hideTooltip();
+        });
+
+        // Touch events
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const mouseX = (touch.clientX - rect.left);
+            showTooltip(mouseX);
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const mouseX = (touch.clientX - rect.left);
+            showTooltip(mouseX);
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            setTimeout(hideTooltip, 1500);
+        });
     }
 
     function toggleStatus(btn) {
@@ -1298,6 +1452,10 @@
         const startStr = `${String(startHour.getHours()).padStart(2, '0')}:${String(startHour.getMinutes()).padStart(2, '0')}`;
         const endStr = endHour ? `${String(endHour.getHours()).padStart(2, '0')}:${String(endHour.getMinutes()).padStart(2, '0')}` : '--:--';
 
+        // Get unique muscles from exercises
+        const exerciseMuscles = new Set(w.muscles || []);
+        w.exercises.forEach(ex => { if (ex.muscle) exerciseMuscles.add(ex.muscle); });
+
         let html = '';
 
         // Stats
@@ -1316,8 +1474,13 @@
             </div>
         </div>`;
 
-        // Muscles
+        // ===== MUSCLE BODY VISUALIZER =====
         html += '<div class="wo-detail-section"><div class="wo-detail-label">Músculos Treinados</div>';
+        html += '<div class="wo-body-visualizer">';
+        html += buildMuscleBodySVG(exerciseMuscles);
+        html += '</div>';
+
+        // Muscle tags below visualizer
         html += '<div class="wo-detail-muscles">';
         html += muscleNames.map(n => `<span class="wo-muscle-tag">${n}</span>`).join('');
         html += '</div></div>';
@@ -1341,6 +1504,158 @@
 
         $('wo-detail-body').innerHTML = html;
         $('wo-detail-modal').classList.remove('hidden');
+    }
+
+    // ==================== MUSCLE BODY SVG VISUALIZER ====================
+    function buildMuscleBodySVG(activeMuscles) {
+        const isActive = (muscleId) => activeMuscles.has(muscleId);
+        const activeColor = '#e6002a';
+        const activeGlow = 'rgba(230, 0, 42, 0.6)';
+        const inactiveColor = '#2a2a3a';
+        const outlineColor = '#3a3a4e';
+
+        function mc(muscleId) {
+            return isActive(muscleId) ? activeColor : inactiveColor;
+        }
+        function ms(muscleId) {
+            return isActive(muscleId) ? `filter:drop-shadow(0 0 6px ${activeGlow});` : '';
+        }
+        function mcls(muscleId) {
+            return isActive(muscleId) ? 'muscle-active' : 'muscle-inactive';
+        }
+
+        // Build front body SVG
+        let front = `<div class="wo-body-side"><div class="wo-body-label">FRENTE</div>
+        <svg viewBox="0 0 200 400" class="wo-body-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <filter id="glow-front">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+        </defs>
+        <!-- Head -->
+        <ellipse cx="100" cy="38" rx="22" ry="26" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="1.2"/>
+        <!-- Neck -->
+        <rect x="90" y="62" width="20" height="14" rx="4" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.8"/>
+        
+        <!-- Traps (front) -->
+        <path d="M80 68 Q72 74 60 82 L68 76 Q76 70 80 68Z" fill="${mc('trapezio')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('trapezio')}" style="${ms('trapezio')}"/>
+        <path d="M120 68 Q128 74 140 82 L132 76 Q124 70 120 68Z" fill="${mc('trapezio')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('trapezio')}" style="${ms('trapezio')}"/>
+        
+        <!-- Shoulders / Deltoids -->
+        <ellipse cx="56" cy="92" rx="18" ry="14" fill="${mc('ombro')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('ombro')}" style="${ms('ombro')}"/>
+        <ellipse cx="144" cy="92" rx="18" ry="14" fill="${mc('ombro')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('ombro')}" style="${ms('ombro')}"/>
+        
+        <!-- Chest / Pectorals -->
+        <path d="M70 82 Q74 78 100 80 Q126 78 130 82 Q132 98 126 108 Q114 116 100 118 Q86 116 74 108 Q68 98 70 82Z" fill="${mc('peito')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('peito')}" style="${ms('peito')}"/>
+        <!-- Chest separation line -->
+        <line x1="100" y1="82" x2="100" y2="118" stroke="${outlineColor}" stroke-width="0.6" opacity="0.5"/>
+        
+        <!-- Biceps -->
+        <path d="M42 100 Q36 116 36 136 Q36 148 42 152 Q48 148 48 136 Q48 116 44 100Z" fill="${mc('biceps')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('biceps')}" style="${ms('biceps')}"/>
+        <path d="M158 100 Q164 116 164 136 Q164 148 158 152 Q152 148 152 136 Q152 116 156 100Z" fill="${mc('biceps')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('biceps')}" style="${ms('biceps')}"/>
+        
+        <!-- Forearms -->
+        <path d="M38 154 Q34 170 32 190 Q30 204 34 210 Q40 206 40 190 Q42 170 42 154Z" fill="${mc('antebraco')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('antebraco')}" style="${ms('antebraco')}"/>
+        <path d="M162 154 Q166 170 168 190 Q170 204 166 210 Q160 206 160 190 Q158 170 158 154Z" fill="${mc('antebraco')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('antebraco')}" style="${ms('antebraco')}"/>
+        
+        <!-- Abs / Core -->
+        <path d="M82 120 Q80 148 80 180 Q82 204 84 216 Q92 220 100 222 Q108 220 116 216 Q118 204 120 180 Q120 148 118 120 Q110 118 100 118 Q90 118 82 120Z" fill="${mc('abdominais')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('abdominais')}" style="${ms('abdominais')}"/>
+        <!-- Abs lines -->
+        <line x1="100" y1="122" x2="100" y2="216" stroke="${outlineColor}" stroke-width="0.5" opacity="0.5"/>
+        <line x1="84" y1="140" x2="116" y2="140" stroke="${outlineColor}" stroke-width="0.4" opacity="0.4"/>
+        <line x1="83" y1="158" x2="117" y2="158" stroke="${outlineColor}" stroke-width="0.4" opacity="0.4"/>
+        <line x1="82" y1="176" x2="118" y2="176" stroke="${outlineColor}" stroke-width="0.4" opacity="0.4"/>
+        <line x1="82" y1="194" x2="118" y2="194" stroke="${outlineColor}" stroke-width="0.4" opacity="0.4"/>
+        
+        <!-- Quadriceps -->
+        <path d="M76 224 Q72 250 70 280 Q68 304 72 312 Q78 316 84 312 Q88 300 90 280 Q90 250 88 224Z" fill="${mc('quadriceps')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('quadriceps')}" style="${ms('quadriceps')}"/>
+        <path d="M124 224 Q128 250 130 280 Q132 304 128 312 Q122 316 116 312 Q112 300 110 280 Q110 250 112 224Z" fill="${mc('quadriceps')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('quadriceps')}" style="${ms('quadriceps')}"/>
+        
+        <!-- Knees -->
+        <ellipse cx="82" cy="318" rx="10" ry="8" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.8"/>
+        <ellipse cx="118" cy="318" rx="10" ry="8" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.8"/>
+        
+        <!-- Calves (front) -->
+        <path d="M74 328 Q70 348 70 366 Q70 380 74 388 Q80 390 84 386 Q88 378 90 366 Q90 348 88 328Z" fill="${mc('panturrilha')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('panturrilha')}" style="${ms('panturrilha')}"/>
+        <path d="M126 328 Q130 348 130 366 Q130 380 126 388 Q120 390 116 386 Q112 378 110 366 Q110 348 112 328Z" fill="${mc('panturrilha')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('panturrilha')}" style="${ms('panturrilha')}"/>
+        
+        <!-- Hands -->
+        <ellipse cx="32" cy="218" rx="6" ry="8" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.6"/>
+        <ellipse cx="168" cy="218" rx="6" ry="8" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.6"/>
+        
+        <!-- Feet -->
+        <ellipse cx="80" cy="396" rx="10" ry="4" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.6"/>
+        <ellipse cx="120" cy="396" rx="10" ry="4" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.6"/>
+        </svg></div>`;
+
+        // Build back body SVG
+        let back = `<div class="wo-body-side"><div class="wo-body-label">COSTAS</div>
+        <svg viewBox="0 0 200 400" class="wo-body-svg" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <filter id="glow-back">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+        </defs>
+        <!-- Head -->
+        <ellipse cx="100" cy="38" rx="22" ry="26" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="1.2"/>
+        <!-- Neck -->
+        <rect x="90" y="62" width="20" height="14" rx="4" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.8"/>
+        
+        <!-- Traps -->
+        <path d="M80 68 Q72 74 56 86 L58 82 Q70 74 80 68Z M120 68 Q128 74 144 86 L142 82 Q130 74 120 68Z" fill="${mc('trapezio')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('trapezio')}" style="${ms('trapezio')}"/>
+        <path d="M80 68 L84 76 Q92 82 100 82 Q108 82 116 76 L120 68 Q110 66 100 66 Q90 66 80 68Z" fill="${mc('trapezio')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('trapezio')}" style="${ms('trapezio')}"/>
+        
+        <!-- Rear Deltoids -->
+        <ellipse cx="56" cy="92" rx="18" ry="14" fill="${mc('ombro')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('ombro')}" style="${ms('ombro')}"/>
+        <ellipse cx="144" cy="92" rx="18" ry="14" fill="${mc('ombro')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('ombro')}" style="${ms('ombro')}"/>
+        
+        <!-- Back / Lats -->
+        <path d="M70 82 Q74 78 100 80 Q126 78 130 82 Q136 100 134 120 Q130 146 126 170 Q118 184 100 186 Q82 184 74 170 Q70 146 66 120 Q64 100 70 82Z" fill="${mc('costas')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('costas')}" style="${ms('costas')}"/>
+        <!-- Back separation line -->
+        <line x1="100" y1="82" x2="100" y2="186" stroke="${outlineColor}" stroke-width="0.6" opacity="0.5"/>
+        <!-- Lats detail lines -->
+        <path d="M74 110 Q80 120 86 130" fill="none" stroke="${outlineColor}" stroke-width="0.4" opacity="0.4"/>
+        <path d="M126 110 Q120 120 114 130" fill="none" stroke="${outlineColor}" stroke-width="0.4" opacity="0.4"/>
+        
+        <!-- Triceps -->
+        <path d="M42 100 Q36 116 36 140 Q36 152 42 156 Q48 152 48 140 Q48 116 44 100Z" fill="${mc('triceps')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('triceps')}" style="${ms('triceps')}"/>
+        <path d="M158 100 Q164 116 164 140 Q164 152 158 156 Q152 152 152 140 Q152 116 156 100Z" fill="${mc('triceps')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('triceps')}" style="${ms('triceps')}"/>
+        
+        <!-- Forearms -->
+        <path d="M38 158 Q34 174 32 194 Q30 208 34 214 Q40 210 40 194 Q42 174 42 158Z" fill="${mc('antebraco')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('antebraco')}" style="${ms('antebraco')}"/>
+        <path d="M162 158 Q166 174 168 194 Q170 208 166 214 Q160 210 160 194 Q158 174 158 158Z" fill="${mc('antebraco')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('antebraco')}" style="${ms('antebraco')}"/>
+        
+        <!-- Lower back -->
+        <path d="M82 188 Q80 200 80 214 Q82 222 90 224 Q96 226 100 226 Q104 226 110 224 Q118 222 120 214 Q120 200 118 188 Q110 186 100 186 Q90 186 82 188Z" fill="${mc('costas')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('costas')}" style="${ms('costas')}"/>
+        
+        <!-- Glutes -->
+        <path d="M76 224 Q72 234 72 244 Q72 256 78 260 Q84 262 90 258 Q94 252 94 244 Q94 234 92 224Z" fill="${mc('gluteos')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('gluteos')}" style="${ms('gluteos')}"/>
+        <path d="M124 224 Q128 234 128 244 Q128 256 122 260 Q116 262 110 258 Q106 252 106 244 Q106 234 108 224Z" fill="${mc('gluteos')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('gluteos')}" style="${ms('gluteos')}"/>
+        
+        <!-- Hamstrings -->
+        <path d="M74 262 Q70 284 70 306 Q70 316 76 318 Q82 316 86 306 Q88 284 88 262Z" fill="${mc('posterior')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('posterior')}" style="${ms('posterior')}"/>
+        <path d="M126 262 Q130 284 130 306 Q130 316 124 318 Q118 316 114 306 Q112 284 112 262Z" fill="${mc('posterior')}" stroke="${outlineColor}" stroke-width="1" class="${mcls('posterior')}" style="${ms('posterior')}"/>
+        
+        <!-- Knees -->
+        <ellipse cx="82" cy="322" rx="10" ry="6" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.8"/>
+        <ellipse cx="118" cy="322" rx="10" ry="6" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.8"/>
+        
+        <!-- Calves (back) -->
+        <path d="M74 330 Q68 350 68 368 Q68 380 74 388 Q80 392 86 386 Q90 374 90 368 Q92 350 88 330Z" fill="${mc('panturrilha')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('panturrilha')}" style="${ms('panturrilha')}"/>
+        <path d="M126 330 Q132 350 132 368 Q132 380 126 388 Q120 392 114 386 Q110 374 110 368 Q108 350 112 330Z" fill="${mc('panturrilha')}" stroke="${outlineColor}" stroke-width="0.8" class="${mcls('panturrilha')}" style="${ms('panturrilha')}"/>
+        
+        <!-- Hands -->
+        <ellipse cx="32" cy="222" rx="6" ry="8" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.6"/>
+        <ellipse cx="168" cy="222" rx="6" ry="8" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.6"/>
+        
+        <!-- Feet -->
+        <ellipse cx="80" cy="396" rx="10" ry="4" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.6"/>
+        <ellipse cx="120" cy="396" rx="10" ry="4" fill="${inactiveColor}" stroke="${outlineColor}" stroke-width="0.6"/>
+        </svg></div>`;
+
+        return front + back;
     }
 
     // ==================== PASSWORD MODAL ====================
