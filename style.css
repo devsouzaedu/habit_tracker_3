@@ -687,12 +687,82 @@ body {
     color: var(--t1);
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: color .15s
+}
+
+.h-name:hover {
+    color: var(--red)
 }
 
 .h-badges {
     margin-top: 2px
 }
+
+/* Habit description */
+.h-desc {
+    font-size: 0.72rem;
+    color: var(--t3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    font-weight: 400;
+    font-style: italic;
+    max-width: 160px
+}
+
+/* Drag handle */
+.drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 28px;
+    color: var(--t3);
+    font-size: 1rem;
+    cursor: grab;
+    opacity: 0;
+    transition: opacity .2s, color .2s;
+    flex-shrink: 0;
+    user-select: none;
+    letter-spacing: -2px
+}
+
+.grid-row.habit:hover .drag-handle {
+    opacity: 0.6
+}
+
+.drag-handle:hover {
+    opacity: 1 !important;
+    color: var(--t1)
+}
+
+.drag-handle:active {
+    cursor: grabbing
+}
+
+/* Drag visual states */
+.grid-row.habit.dragging {
+    opacity: 0.35
+}
+
+.grid-row.habit.drag-over-top {
+    border-top: 2px solid var(--red) !important
+}
+
+.grid-row.habit.drag-over-bottom {
+    border-bottom: 2px solid var(--red) !important
+}
+
+/* Optional label */
+.lbl-opt {
+    color: var(--t3);
+    font-weight: 400;
+    font-size: 0.75rem
+}
+
 
 .cell {
     display: flex;
@@ -2272,6 +2342,73 @@ body {
     opacity: 0.3;
     flex-shrink: 0;
     -webkit-tap-highlight-color: transparent
+}
+
+/* Mobile drag handle */
+.mobile-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 32px;
+    color: var(--t3);
+    font-size: 1rem;
+    cursor: grab;
+    opacity: 0.4;
+    flex-shrink: 0;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none
+}
+
+.mobile-drag-handle:active {
+    cursor: grabbing;
+    opacity: 1;
+    color: var(--red)
+}
+
+/* Mobile habit description */
+.mobile-habit-desc {
+    font-size: 0.68rem;
+    color: var(--t3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+    font-style: italic;
+    font-weight: 400
+}
+
+/* Mobile drag states */
+.mobile-habit-card.mobile-dragging {
+    opacity: 0.3
+}
+
+.mobile-habit-card.drag-over-top {
+    border-top: 2px solid var(--red) !important
+}
+
+.mobile-habit-card.drag-over-bottom {
+    border-bottom: 2px solid var(--red) !important
+}
+
+/* Floating drag clone */
+.drag-clone {
+    opacity: 0.9;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--red);
+    border-radius: 8px;
+    transform: scale(1.03);
+    transition: box-shadow .15s
+}
+
+/* Mobile clickable name */
+.mobile-habit-name {
+    cursor: pointer;
+    transition: color .15s
+}
+
+.mobile-habit-name:active {
+    color: var(--red)
 }
 
 .mobile-day-summary {

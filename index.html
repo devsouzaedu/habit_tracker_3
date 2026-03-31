@@ -14,7 +14,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=10">
+    <link rel="stylesheet" href="style.css?v=12">
 </head>
 
 <body>
@@ -28,11 +28,13 @@
                 <p>Sistema de Controle Pessoal</p>
             </div>
             <form id="login-form" class="login-form" onsubmit="return false">
+                <label for="login-uid">Seu ID</label>
+                <input type="text" id="login-uid" class="input" placeholder="ex: eduardo" autocomplete="off" autofocus>
                 <label for="login-pw">Senha</label>
-                <input type="password" id="login-pw" class="input" placeholder="••••••" autocomplete="off" autofocus>
+                <input type="password" id="login-pw" class="input" placeholder="••••••" autocomplete="off">
                 <button type="submit" id="login-btn" class="btn-red">Entrar</button>
                 <span id="login-err" class="err-msg"></span>
-                <span class="hint">Senha padrão: <b>1234</b></span>
+                <span class="hint">Crie um ID único e uma senha (padrão: <b>1234</b>)</span>
             </form>
         </div>
     </div>
@@ -368,6 +370,9 @@
             <div class="modal-body">
                 <label class="lbl">Nome</label>
                 <input type="text" id="h-name" class="input" placeholder="Ex: Treinar, Ler, Meditar...">
+                <label class="lbl">Descrição <span class="lbl-opt">(opcional)</span></label>
+                <textarea id="h-desc" class="input textarea" rows="2"
+                    placeholder="Uma nota curta sobre este hábito..."></textarea>
                 <label class="lbl">Ícone</label>
                 <div class="picker" id="icon-picker">
                     <button class="pick selected" data-v="🏋️">🏋️</button>
@@ -496,7 +501,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="app.js?v=10"></script>
+    <script src="app.js?v=12"></script>
 </body>
 
 </html>

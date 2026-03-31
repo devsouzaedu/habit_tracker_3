@@ -5,15 +5,23 @@
 (() => {
     'use strict';
 
-    const KEYS = {
-        PW: 'ht_password',
-        HABITS: 'ht_habits',
-        REC: 'ht_records',
-        NOTES: 'ht_notes',
-        FIN: 'ht_finance',
-        WORKOUT: 'ht_workouts',
-        AUTH: 'ht_auth'
-    };
+    const KEY_PREFIX_BASE = 'ht_';
+    let currentUserId = null;
+
+    // Keys are dynamically prefixed with user ID
+    function KEYS() {
+        const p = currentUserId ? `ht_${currentUserId}_` : 'ht_';
+        return {
+            PW: `${p}password`,
+            HABITS: `${p}habits`,
+            REC: `${p}records`,
+            NOTES: `${p}notes`,
+            FIN: `${p}finance`,
+            WORKOUT: `${p}workouts`,
+            AUTH: 'ht_auth', // shared
+            LAST_UID: 'ht_last_uid' // shared: remember last user id
+        };
+    }
     const DEF_PW = '1234';
     const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const DAYS_F = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -132,39 +140,40 @@
         syncToSupabase(); // async, non-blocking
     }
 
-    const getPw = () => localStorage.getItem(KEYS.PW) || DEF_PW;
-    const setPw = p => { localStorage.setItem(KEYS.PW, p); syncToSupabase(); };
-    const getH = () => lGet(KEYS.HABITS, []);
-    const svH = h => lSet(KEYS.HABITS, h);
-    const getR = () => lGet(KEYS.REC, {});
-    const svR = r => lSet(KEYS.REC, r);
-    const getN = () => lGet(KEYS.NOTES, []);
-    const svN = n => lSet(KEYS.NOTES, n);
-    const getF = () => lGet(KEYS.FIN, { balance: 0, log: [] });
-    const svF = f => lSet(KEYS.FIN, f);
-    const getW = () => lGet(KEYS.WORKOUT, []);
-    const svW = w => lSet(KEYS.WORKOUT, w);
+    const getPw = () => localStorage.getItem(KEYS().PW) || DEF_PW;
+    const setPw = p => { localStorage.setItem(KEYS().PW, p); syncToSupabase(); };
+    const getH = () => lGet(KEYS().HABITS, []);
+    const svH = h => lSet(KEYS().HABITS, h);
+    const getR = () => lGet(KEYS().REC, {});
+    const svR = r => lSet(KEYS().REC, r);
+    const getN = () => lGet(KEYS().NOTES, []);
+    const svN = n => lSet(KEYS().NOTES, n);
+    const getF = () => lGet(KEYS().FIN, { balance: 0, log: [] });
+    const svF = f => lSet(KEYS().FIN, f);
+    const getW = () => lGet(KEYS().WORKOUT, []);
+    const svW = w => lSet(KEYS().WORKOUT, w);
 
     // ===== SUPABASE SYNC =====
-    // Uses a single row in `user_data` table with key='default'
+    // Uses a single row in `user_data` table per user (key = userId)
     // Table schema: id (int8, auto), key (text, unique), data (jsonb), updated_at (timestamptz)
     let syncTimer = null;
 
     function syncToSupabase() {
-        if (!supabaseReady) return;
+        if (!supabaseReady || !currentUserId) return;
         clearTimeout(syncTimer);
         syncTimer = setTimeout(async () => {
             try {
+                const k = KEYS();
                 const payload = {};
-                for (const k of Object.values(KEYS)) {
-                    if (k === KEYS.AUTH) continue;
-                    const val = localStorage.getItem(k);
-                    if (val !== null) payload[k] = val;
+                for (const val of Object.values(k)) {
+                    if (val === k.AUTH || val === k.LAST_UID) continue;
+                    const stored = localStorage.getItem(val);
+                    if (stored !== null) payload[val] = stored;
                 }
                 const { error } = await supabase
                     .from('user_data')
                     .upsert({
-                        key: 'default',
+                        key: currentUserId,
                         data: payload,
                         updated_at: new Date().toISOString()
                     }, { onConflict: 'key' });
@@ -176,18 +185,17 @@
     }
 
     async function syncFromSupabase() {
-        if (!supabaseReady) return false;
+        if (!supabaseReady || !currentUserId) return false;
         try {
             const { data, error } = await supabase
                 .from('user_data')
                 .select('data')
-                .eq('key', 'default')
+                .eq('key', currentUserId)
                 .single();
 
             if (error) {
-                // PGRST116 = no rows found, which is normal for first use
                 if (error.code === 'PGRST116') {
-                    console.log('[SUPABASE] No data found — will use localStorage or create fresh');
+                    console.log('[SUPABASE] No data found for user ' + currentUserId + ' — fresh account');
                     return false;
                 }
                 console.error('[SUPABASE] Read error:', error.message);
@@ -195,11 +203,12 @@
             }
 
             if (data && data.data) {
-                for (const [k, v] of Object.entries(data.data)) {
-                    if (k === KEYS.AUTH) continue;
-                    localStorage.setItem(k, v);
+                const k = KEYS();
+                for (const [key, v] of Object.entries(data.data)) {
+                    if (key === k.AUTH || key === k.LAST_UID) continue;
+                    localStorage.setItem(key, v);
                 }
-                console.log('[SUPABASE] Data loaded from cloud');
+                console.log('[SUPABASE] Data loaded from cloud for user:', currentUserId);
                 return true;
             }
             return false;
@@ -215,9 +224,10 @@
             const resp = await fetch('/api/data');
             if (!resp.ok) return false;
             const data = await resp.json();
-            for (const [k, v] of Object.entries(data)) {
-                if (k === KEYS.AUTH) continue;
-                localStorage.setItem(k, v);
+            const k = KEYS();
+            for (const [key, v] of Object.entries(data)) {
+                if (key === k.AUTH || key === k.LAST_UID) continue;
+                localStorage.setItem(key, v);
             }
             return true;
         } catch {
@@ -251,6 +261,31 @@
     };
     const fmtMoney = v => 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+    // ==================== DATA MIGRATION ====================
+    // Migrates old single-user data (ht_habits, etc.) to new user-prefixed keys
+    function migrateOldData(uid) {
+        const oldKeys = {
+            'ht_habits': `ht_${uid}_habits`,
+            'ht_records': `ht_${uid}_records`,
+            'ht_notes': `ht_${uid}_notes`,
+            'ht_finance': `ht_${uid}_finance`,
+            'ht_workouts': `ht_${uid}_workouts`,
+            'ht_password': `ht_${uid}_password`
+        };
+        let migrated = false;
+        for (const [oldKey, newKey] of Object.entries(oldKeys)) {
+            const oldVal = localStorage.getItem(oldKey);
+            if (oldVal && !localStorage.getItem(newKey)) {
+                localStorage.setItem(newKey, oldVal);
+                migrated = true;
+            }
+        }
+        if (migrated) {
+            console.log('[MIGRATION] Old data migrated to user:', uid);
+            localStorage.setItem('ht_migration_done', '1');
+        }
+    }
+
     // ==================== AUTH ====================
     async function initAuth() {
         const screen = $('login-screen'), app = $('app');
@@ -258,33 +293,74 @@
         // Initialize Supabase
         initSupabase();
 
-        // Sync data: try Supabase first, then local server
-        const loadedFromCloud = await syncFromSupabase();
-        if (!loadedFromCloud) {
-            await syncFromLocalServer();
-        }
-
-        if (sessionStorage.getItem(KEYS.AUTH) === '1') {
+        // Check if user is already logged in this session
+        const sessionUid = sessionStorage.getItem('ht_auth_uid');
+        if (sessionUid && sessionStorage.getItem(KEYS().AUTH) === '1') {
+            currentUserId = sessionUid;
+            // Sync from cloud for this user
+            const loadedFromCloud = await syncFromSupabase();
+            if (!loadedFromCloud) await syncFromLocalServer();
             screen.classList.add('hidden');
             app.classList.remove('hidden');
             boot();
             return;
         }
 
-        const input = $('login-pw'), btn = $('login-btn'), err = $('login-err');
-        const attempt = () => {
-            if (input.value === getPw()) {
-                sessionStorage.setItem(KEYS.AUTH, '1');
+        // Pre-fill last used ID
+        const lastUid = localStorage.getItem('ht_last_uid');
+        if (lastUid) $('login-uid').value = lastUid;
+
+        const uidInput = $('login-uid'), pwInput = $('login-pw');
+        const btn = $('login-btn'), err = $('login-err');
+
+        const attempt = async () => {
+            const uid = uidInput.value.trim().toLowerCase();
+            const pw = pwInput.value;
+
+            if (!uid) {
+                err.textContent = 'Digite seu ID';
+                uidInput.focus();
+                setTimeout(() => err.textContent = '', 2000);
+                return;
+            }
+            if (uid.length < 2) {
+                err.textContent = 'ID deve ter pelo menos 2 caracteres';
+                uidInput.focus();
+                setTimeout(() => err.textContent = '', 2000);
+                return;
+            }
+
+            // Set user ID so KEYS() returns user-scoped keys
+            currentUserId = uid;
+
+            // Migrate old single-user data if it exists
+            migrateOldData(uid);
+
+            // Try to load this user's data from Supabase
+            const loadedFromCloud = await syncFromSupabase();
+            if (!loadedFromCloud) {
+                await syncFromLocalServer();
+            }
+
+            // Check password (first login = auto-create with DEF_PW)
+            const storedPw = getPw();
+            if (pw === storedPw) {
+                // Success
+                sessionStorage.setItem(KEYS().AUTH, '1');
+                sessionStorage.setItem('ht_auth_uid', uid);
+                localStorage.setItem('ht_last_uid', uid);
                 screen.style.opacity = '0';
                 screen.style.transition = 'opacity .35s';
                 setTimeout(() => { screen.classList.add('hidden'); app.classList.remove('hidden'); boot(); }, 350);
             } else {
+                currentUserId = null; // reset on failure
                 err.textContent = 'Senha incorreta';
                 setTimeout(() => err.textContent = '', 2000);
             }
         };
         btn.onclick = attempt;
-        input.onkeydown = e => { if (e.key === 'Enter') attempt(); };
+        pwInput.onkeydown = e => { if (e.key === 'Enter') attempt(); };
+        uidInput.onkeydown = e => { if (e.key === 'Enter') pwInput.focus(); };
     }
 
     // ==================== AUTO-FAIL UNCHECKED HABITS ====================
@@ -417,14 +493,16 @@
         h += '<div class="cell"></div></div>';
 
         // habit rows
-        habits.forEach(hab => {
+        habits.forEach((hab, idx) => {
             const streak = calcStreak(hab.id, rec);
             const trend = calcTrend(hab.id, rec);
-            h += `<div class="grid-row habit">`;
+            h += `<div class="grid-row habit" draggable="true" data-habit-idx="${idx}" data-habit-id="${hab.id}">`;
             h += `<div class="habit-info">`;
+            h += `<div class="drag-handle" title="Arrastar para reordenar">⠿</div>`;
             h += `<div class="h-icon" style="border:1px solid ${hab.color || 'var(--brd)'}">${hab.icon}</div>`;
             h += `<div class="h-meta">`;
             h += `<div class="h-name-row"><span class="h-name">${esc(hab.name)}</span>${trendIcon(trend)}</div>`;
+            if (hab.desc) h += `<div class="h-desc">${esc(hab.desc)}</div>`;
             h += `<div class="h-badges">${streakBadge(streak)}</div>`;
             h += `</div></div>`;
 
@@ -449,6 +527,15 @@
         // bind events
         grid.querySelectorAll('.s-btn').forEach(b => { b.onclick = () => toggleStatus(b); });
         grid.querySelectorAll('.row-del').forEach(b => { b.onclick = () => openDel(b.dataset.del); });
+        // bind edit on click habit name
+        grid.querySelectorAll('.habit-info .h-name').forEach(el => {
+            el.onclick = () => {
+                const row = el.closest('.grid-row.habit');
+                if (row) openEditHabit(row.dataset.habitId);
+            };
+        });
+        // Desktop drag & drop
+        initDesktopDragDrop(grid);
 
         renderProgressChart();
         renderMobileTracker();
@@ -534,7 +621,7 @@
         html += `</div>`;
 
         // Habit cards
-        habits.forEach(hab => {
+        habits.forEach((hab, idx) => {
             const key = rk(hab.id, selDay);
             const s = rec[key] || null;
             const streak = calcStreak(hab.id, rec);
@@ -544,11 +631,13 @@
             if (s === 'win') { toggleCls += ' w'; toggleTxt = '✓'; }
             else if (s === 'fail') { toggleCls += ' f'; toggleTxt = '✗'; }
 
-            html += `<div class="mobile-habit-card${s === 'win' ? ' card-win' : s === 'fail' ? ' card-fail' : ''}">`;
+            html += `<div class="mobile-habit-card${s === 'win' ? ' card-win' : s === 'fail' ? ' card-fail' : ''}" data-habit-idx="${idx}" data-habit-id="${hab.id}">`;
+            html += `<div class="mobile-drag-handle" title="Arrastar">⠿</div>`;
             html += `<div class="mobile-habit-left">`;
             html += `<div class="mobile-habit-icon" style="border:1px solid ${hab.color || 'var(--brd)'}">${hab.icon}</div>`;
             html += `<div class="mobile-habit-meta">`;
             html += `<div class="mobile-habit-name-row"><span class="mobile-habit-name">${esc(hab.name)}</span>${trendIcon(trend)}</div>`;
+            if (hab.desc) html += `<div class="mobile-habit-desc">${esc(hab.desc)}</div>`;
             html += `<div class="mobile-habit-badges">${streakBadge(streak)}</div>`;
             html += `</div></div>`;
             html += `<button class="${toggleCls}" data-h="${hab.id}" data-d="${dk(selDay)}">${toggleTxt}</button>`;
@@ -565,6 +654,174 @@
         container.querySelectorAll('.mobile-habit-del').forEach(b => {
             b.onclick = () => openDel(b.dataset.del);
         });
+        // bind edit on tap habit name
+        container.querySelectorAll('.mobile-habit-name').forEach(el => {
+            el.onclick = () => {
+                const card = el.closest('.mobile-habit-card');
+                if (card) openEditHabit(card.dataset.habitId);
+            };
+        });
+        // Mobile drag & drop (touch)
+        initMobileDragDrop(container);
+    }
+
+    // ==================== DRAG & DROP: DESKTOP ====================
+    function initDesktopDragDrop(grid) {
+        let dragSrcIdx = null;
+        const rows = grid.querySelectorAll('.grid-row.habit');
+        rows.forEach(row => {
+            // Only drag from the handle
+            row.addEventListener('dragstart', e => {
+                // Only allow drag if started from the handle
+                const handle = row.querySelector('.drag-handle');
+                if (!e.target.closest || !handle) return;
+                dragSrcIdx = parseInt(row.dataset.habitIdx);
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', dragSrcIdx);
+            });
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                rows.forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+                dragSrcIdx = null;
+            });
+            row.addEventListener('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const rect = row.getBoundingClientRect();
+                const mid = rect.top + rect.height / 2;
+                rows.forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+                if (e.clientY < mid) {
+                    row.classList.add('drag-over-top');
+                } else {
+                    row.classList.add('drag-over-bottom');
+                }
+            });
+            row.addEventListener('dragleave', () => {
+                row.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+            row.addEventListener('drop', e => {
+                e.preventDefault();
+                const targetIdx = parseInt(row.dataset.habitIdx);
+                rows.forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+                if (dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+                reorderHabit(dragSrcIdx, targetIdx);
+                dragSrcIdx = null;
+            });
+        });
+    }
+
+    // ==================== DRAG & DROP: MOBILE (TOUCH) ====================
+    function initMobileDragDrop(container) {
+        let dragCard = null;
+        let dragClone = null;
+        let startY = 0;
+        let dragIdx = null;
+        let touchTimer = null;
+        let isDragging = false;
+
+        const cards = container.querySelectorAll('.mobile-habit-card');
+
+        cards.forEach(card => {
+            const handle = card.querySelector('.mobile-drag-handle');
+            if (!handle) return;
+
+            handle.addEventListener('touchstart', e => {
+                e.preventDefault();
+                dragCard = card;
+                dragIdx = parseInt(card.dataset.habitIdx);
+                const touch = e.touches[0];
+                startY = touch.clientY;
+
+                // Begin drag immediately from handle
+                isDragging = true;
+                card.classList.add('mobile-dragging');
+                // Create floating clone
+                dragClone = card.cloneNode(true);
+                dragClone.classList.add('drag-clone');
+                dragClone.style.position = 'fixed';
+                dragClone.style.left = card.getBoundingClientRect().left + 'px';
+                dragClone.style.top = touch.clientY - card.offsetHeight / 2 + 'px';
+                dragClone.style.width = card.offsetWidth + 'px';
+                dragClone.style.zIndex = '9999';
+                dragClone.style.pointerEvents = 'none';
+                document.body.appendChild(dragClone);
+            }, { passive: false });
+
+            handle.addEventListener('touchmove', e => {
+                if (!isDragging || !dragClone) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                dragClone.style.top = touch.clientY - dragCard.offsetHeight / 2 + 'px';
+
+                // Find which card the touch is over
+                const allCards = container.querySelectorAll('.mobile-habit-card');
+                allCards.forEach(c => c.classList.remove('drag-over-top', 'drag-over-bottom'));
+
+                for (const c of allCards) {
+                    if (c === dragCard) continue;
+                    const r = c.getBoundingClientRect();
+                    if (touch.clientY >= r.top && touch.clientY <= r.bottom) {
+                        const mid = r.top + r.height / 2;
+                        if (touch.clientY < mid) {
+                            c.classList.add('drag-over-top');
+                        } else {
+                            c.classList.add('drag-over-bottom');
+                        }
+                        break;
+                    }
+                }
+            }, { passive: false });
+
+            handle.addEventListener('touchend', e => {
+                if (!isDragging) return;
+                isDragging = false;
+                if (dragClone) {
+                    dragClone.remove();
+                    dragClone = null;
+                }
+                if (dragCard) {
+                    dragCard.classList.remove('mobile-dragging');
+                }
+
+                // Find the target card
+                const allCards = container.querySelectorAll('.mobile-habit-card');
+                let targetIdx = null;
+                allCards.forEach(c => {
+                    if (c.classList.contains('drag-over-top') || c.classList.contains('drag-over-bottom')) {
+                        targetIdx = parseInt(c.dataset.habitIdx);
+                    }
+                    c.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+
+                if (targetIdx !== null && dragIdx !== null && dragIdx !== targetIdx) {
+                    reorderHabit(dragIdx, targetIdx);
+                }
+                dragCard = null;
+                dragIdx = null;
+            });
+
+            handle.addEventListener('touchcancel', () => {
+                isDragging = false;
+                if (dragClone) { dragClone.remove(); dragClone = null; }
+                if (dragCard) dragCard.classList.remove('mobile-dragging');
+                container.querySelectorAll('.mobile-habit-card').forEach(c => {
+                    c.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+                dragCard = null;
+                dragIdx = null;
+            });
+        });
+    }
+
+    // ==================== REORDER HABIT ====================
+    function reorderHabit(fromIdx, toIdx) {
+        const habits = getH();
+        if (fromIdx < 0 || fromIdx >= habits.length || toIdx < 0 || toIdx >= habits.length) return;
+        const [moved] = habits.splice(fromIdx, 1);
+        habits.splice(toIdx, 0, moved);
+        svH(habits);
+        renderTracker();
     }
 
     // ==================== PROGRESS LINE CHART ====================
@@ -962,9 +1219,25 @@
     }
 
     // ==================== HABIT MODAL ====================
+    let editHabitId = null; // null = creating, set = editing
     function initHabitModal() {
         let icon = '🏋️', color = '#e6002a';
-        $('add-habit-btn').onclick = () => { $('habit-modal').classList.remove('hidden'); $('h-name').value = ''; $('h-name').focus(); };
+
+        $('add-habit-btn').onclick = () => {
+            editHabitId = null;
+            $('habit-modal').querySelector('h3').textContent = 'Novo Hábito';
+            $('h-name').value = '';
+            $('h-desc').value = '';
+            // reset icon/color selection
+            document.querySelectorAll('#icon-picker .pick').forEach(x => x.classList.remove('selected'));
+            document.querySelector('#icon-picker .pick[data-v="🏋️"]').classList.add('selected');
+            icon = '🏋️';
+            document.querySelectorAll('#color-picker .cdot').forEach(x => x.classList.remove('selected'));
+            document.querySelector('#color-picker .cdot[data-v="#e6002a"]').classList.add('selected');
+            color = '#e6002a';
+            $('habit-modal').classList.remove('hidden');
+            $('h-name').focus();
+        };
 
         document.querySelectorAll('#icon-picker .pick').forEach(b => {
             b.onclick = () => {
@@ -981,14 +1254,48 @@
 
         $('h-save').onclick = () => {
             const name = $('h-name').value.trim();
+            const desc = $('h-desc').value.trim();
             if (!name) { $('h-name').style.borderColor = 'var(--fail)'; setTimeout(() => $('h-name').style.borderColor = '', 1500); return; }
             const habits = getH();
-            habits.push({ id: 'h_' + Date.now(), name, icon, color, created: new Date().toISOString() });
+            if (editHabitId) {
+                // Edit existing habit
+                const hab = habits.find(h => h.id === editHabitId);
+                if (hab) {
+                    hab.name = name;
+                    hab.desc = desc || '';
+                    hab.icon = icon;
+                    hab.color = color;
+                }
+            } else {
+                // Create new habit
+                habits.push({ id: 'h_' + Date.now(), name, desc: desc || '', icon, color, created: new Date().toISOString() });
+            }
             svH(habits);
             $('habit-modal').classList.add('hidden');
+            editHabitId = null;
             renderTracker();
         };
         $('h-name').onkeydown = e => { if (e.key === 'Enter') $('h-save').click(); };
+    }
+
+    function openEditHabit(id) {
+        const habits = getH();
+        const hab = habits.find(h => h.id === id);
+        if (!hab) return;
+        editHabitId = id;
+        $('habit-modal').querySelector('h3').textContent = 'Editar Hábito';
+        $('h-name').value = hab.name;
+        $('h-desc').value = hab.desc || '';
+        // Set icon
+        document.querySelectorAll('#icon-picker .pick').forEach(x => x.classList.remove('selected'));
+        const iconBtn = document.querySelector(`#icon-picker .pick[data-v="${hab.icon}"]`);
+        if (iconBtn) iconBtn.classList.add('selected');
+        // Set color
+        document.querySelectorAll('#color-picker .cdot').forEach(x => x.classList.remove('selected'));
+        const colorBtn = document.querySelector(`#color-picker .cdot[data-v="${hab.color}"]`);
+        if (colorBtn) colorBtn.classList.add('selected');
+        $('habit-modal').classList.remove('hidden');
+        $('h-name').focus();
     }
 
     // ==================== DELETE MODAL ====================
