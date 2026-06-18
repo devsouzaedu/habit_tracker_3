@@ -1,0 +1,22 @@
+name: Keep Supabase Active
+
+on:
+  schedule:
+    # Runs every day at 12:00 UTC (9:00 AM BRT)
+    - cron: '0 12 * * *'
+  workflow_dispatch: # Allows manual run
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Run ping bot
+        run: node ping-supabase.js

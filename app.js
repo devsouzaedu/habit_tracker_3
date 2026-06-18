@@ -218,23 +218,6 @@
         }
     }
 
-    // Legacy: also try local server if available (for backwards compatibility)
-    async function syncFromLocalServer() {
-        try {
-            const resp = await fetch('/api/data');
-            if (!resp.ok) return false;
-            const data = await resp.json();
-            const k = KEYS();
-            for (const [key, v] of Object.entries(data)) {
-                if (key === k.AUTH || key === k.LAST_UID) continue;
-                localStorage.setItem(key, v);
-            }
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
     // ==================== DATE HELPERS ====================
     const $ = id => document.getElementById(id);
     const now = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
@@ -298,8 +281,7 @@
         if (sessionUid && sessionStorage.getItem(KEYS().AUTH) === '1') {
             currentUserId = sessionUid;
             // Sync from cloud for this user
-            const loadedFromCloud = await syncFromSupabase();
-            if (!loadedFromCloud) await syncFromLocalServer();
+            await syncFromSupabase();
             screen.classList.add('hidden');
             app.classList.remove('hidden');
             boot();
@@ -312,6 +294,31 @@
 
         const uidInput = $('login-uid'), pwInput = $('login-pw');
         const btn = $('login-btn'), err = $('login-err');
+        const confirmWrap = $('signup-confirm-wrap');
+        const confirmPwInput = $('login-pw-confirm');
+        const toggleSignIn = $('login-toggle-signin');
+        const toggleSignUp = $('login-toggle-signup');
+
+        let authMode = 'signin';
+
+        if (toggleSignIn && toggleSignUp) {
+            toggleSignIn.onclick = () => {
+                authMode = 'signin';
+                toggleSignIn.classList.add('active');
+                toggleSignUp.classList.remove('active');
+                confirmWrap.classList.add('hidden');
+                btn.textContent = 'Entrar';
+                err.textContent = '';
+            };
+            toggleSignUp.onclick = () => {
+                authMode = 'signup';
+                toggleSignUp.classList.add('active');
+                toggleSignIn.classList.remove('active');
+                confirmWrap.classList.remove('hidden');
+                btn.textContent = 'Criar Conta';
+                err.textContent = '';
+            };
+        }
 
         const attempt = async () => {
             const uid = uidInput.value.trim().toLowerCase();
@@ -329,38 +336,165 @@
                 setTimeout(() => err.textContent = '', 2000);
                 return;
             }
-
-            // Set user ID so KEYS() returns user-scoped keys
-            currentUserId = uid;
-
-            // Migrate old single-user data if it exists
-            migrateOldData(uid);
-
-            // Try to load this user's data from Supabase
-            const loadedFromCloud = await syncFromSupabase();
-            if (!loadedFromCloud) {
-                await syncFromLocalServer();
+            if (!pw) {
+                err.textContent = 'Digite sua senha';
+                pwInput.focus();
+                setTimeout(() => err.textContent = '', 2000);
+                return;
             }
 
-            // Check password (first login = auto-create with DEF_PW)
-            const storedPw = getPw();
-            if (pw === storedPw) {
-                // Success
-                sessionStorage.setItem(KEYS().AUTH, '1');
-                sessionStorage.setItem('ht_auth_uid', uid);
-                localStorage.setItem('ht_last_uid', uid);
-                screen.style.opacity = '0';
-                screen.style.transition = 'opacity .35s';
-                setTimeout(() => { screen.classList.add('hidden'); app.classList.remove('hidden'); boot(); }, 350);
+            if (authMode === 'signup') {
+                const pwConfirm = confirmPwInput.value;
+                if (pw !== pwConfirm) {
+                    err.textContent = 'As senhas não coincidem';
+                    confirmPwInput.focus();
+                    setTimeout(() => err.textContent = '', 2000);
+                    return;
+                }
+                if (pw.length < 4) {
+                    err.textContent = 'A senha deve ter pelo menos 4 caracteres';
+                    pwInput.focus();
+                    setTimeout(() => err.textContent = '', 2000);
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = 'Criando...';
+
+                try {
+                    if (!supabaseReady) {
+                        err.textContent = 'Supabase não conectado';
+                        btn.disabled = false;
+                        btn.textContent = 'Criar Conta';
+                        return;
+                    }
+
+                    // Check if user already exists
+                    const { data: existingUser, error: checkError } = await supabase
+                        .from('user_data')
+                        .select('key')
+                        .eq('key', uid)
+                        .maybeSingle();
+
+                    if (checkError) {
+                        console.error('[SUPABASE] Check error:', checkError.message);
+                        err.textContent = 'Erro ao verificar ID';
+                        btn.disabled = false;
+                        btn.textContent = 'Criar Conta';
+                        return;
+                    }
+
+                    if (existingUser) {
+                        err.textContent = 'Este ID de usuário já está sendo usado';
+                        uidInput.focus();
+                        btn.disabled = false;
+                        btn.textContent = 'Criar Conta';
+                        return;
+                    }
+
+                    // Create user payload
+                    const p = `ht_${uid}_`;
+                    const payload = {
+                        [`${p}password`]: pw,
+                        [`${p}habits`]: '[]',
+                        [`${p}records`]: '{}',
+                        [`${p}notes`]: '[]',
+                        [`${p}finance`]: '{"balance":0,"log":[]}',
+                        [`${p}workouts`]: '[]'
+                    };
+
+                    const { error: insertError } = await supabase
+                        .from('user_data')
+                        .insert({
+                            key: uid,
+                            data: payload,
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (insertError) {
+                        console.error('[SUPABASE] Insert error:', insertError.message);
+                        err.textContent = 'Erro ao criar conta';
+                        btn.disabled = false;
+                        btn.textContent = 'Criar Conta';
+                        return;
+                    }
+
+                    // Success!
+                    currentUserId = uid;
+                    for (const [k, val] of Object.entries(payload)) {
+                        localStorage.setItem(k, val);
+                    }
+
+                    sessionStorage.setItem(KEYS().AUTH, '1');
+                    sessionStorage.setItem('ht_auth_uid', uid);
+                    localStorage.setItem('ht_last_uid', uid);
+
+                    screen.style.opacity = '0';
+                    screen.style.transition = 'opacity .35s';
+                    setTimeout(() => { screen.classList.add('hidden'); app.classList.remove('hidden'); boot(); }, 350);
+
+                } catch (e) {
+                    console.error('[REGISTRATION] Exception:', e.message);
+                    err.textContent = 'Erro inesperado ao criar conta';
+                    btn.disabled = false;
+                    btn.textContent = 'Criar Conta';
+                }
             } else {
-                currentUserId = null; // reset on failure
-                err.textContent = 'Senha incorreta';
-                setTimeout(() => err.textContent = '', 2000);
+                // SIGN IN
+                btn.disabled = true;
+                btn.textContent = 'Entrando...';
+
+                try {
+                    if (!supabaseReady) {
+                        err.textContent = 'Supabase não conectado';
+                        btn.disabled = false;
+                        btn.textContent = 'Entrar';
+                        return;
+                    }
+
+                    currentUserId = uid;
+                    const loadedFromCloud = await syncFromSupabase();
+
+                    if (!loadedFromCloud) {
+                        currentUserId = null;
+                        err.textContent = 'Usuário não encontrado';
+                        btn.disabled = false;
+                        btn.textContent = 'Entrar';
+                        return;
+                    }
+
+                    // Check password
+                    const storedPw = getPw();
+                    if (pw === storedPw) {
+                        sessionStorage.setItem(KEYS().AUTH, '1');
+                        sessionStorage.setItem('ht_auth_uid', uid);
+                        localStorage.setItem('ht_last_uid', uid);
+
+                        screen.style.opacity = '0';
+                        screen.style.transition = 'opacity .35s';
+                        setTimeout(() => { screen.classList.add('hidden'); app.classList.remove('hidden'); boot(); }, 350);
+                    } else {
+                        currentUserId = null;
+                        err.textContent = 'Senha incorreta';
+                        btn.disabled = false;
+                        btn.textContent = 'Entrar';
+                    }
+
+                } catch (e) {
+                    console.error('[SIGNIN] Exception:', e.message);
+                    err.textContent = 'Erro inesperado ao entrar';
+                    btn.disabled = false;
+                    btn.textContent = 'Entrar';
+                }
             }
         };
+
         btn.onclick = attempt;
         pwInput.onkeydown = e => { if (e.key === 'Enter') attempt(); };
         uidInput.onkeydown = e => { if (e.key === 'Enter') pwInput.focus(); };
+        if (confirmPwInput) {
+            confirmPwInput.onkeydown = e => { if (e.key === 'Enter') attempt(); };
+        }
     }
 
     // ==================== AUTO-FAIL UNCHECKED HABITS ====================

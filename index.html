@@ -28,13 +28,20 @@
                 <p>Sistema de Controle Pessoal</p>
             </div>
             <form id="login-form" class="login-form" onsubmit="return false">
+                <div class="login-toggle">
+                    <button type="button" id="login-toggle-signin" class="login-toggle-btn active">Entrar</button>
+                    <button type="button" id="login-toggle-signup" class="login-toggle-btn">Criar Conta</button>
+                </div>
                 <label for="login-uid">Seu ID</label>
                 <input type="text" id="login-uid" class="input" placeholder="ex: eduardo" autocomplete="off" autofocus>
                 <label for="login-pw">Senha</label>
                 <input type="password" id="login-pw" class="input" placeholder="••••••" autocomplete="off">
+                <div id="signup-confirm-wrap" class="hidden">
+                    <label for="login-pw-confirm">Confirmar Senha</label>
+                    <input type="password" id="login-pw-confirm" class="input" placeholder="••••••" autocomplete="off">
+                </div>
                 <button type="submit" id="login-btn" class="btn-red">Entrar</button>
                 <span id="login-err" class="err-msg"></span>
-                <span class="hint">Crie um ID único e uma senha (padrão: <b>1234</b>)</span>
             </form>
         </div>
     </div>

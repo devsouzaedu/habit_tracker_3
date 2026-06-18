@@ -11,7 +11,6 @@ const os = require('os');
 const { exec } = require('child_process');
 
 const PORT = 3030;
-const DATA_FILE = path.join(__dirname, 'data.json');
 const STATIC_DIR = __dirname;
 
 // MIME types
@@ -30,28 +29,6 @@ const MIME = {
     '.woff2': 'font/woff2',
     '.ttf': 'font/ttf',
 };
-
-// ===== DATA HELPERS =====
-function readData() {
-    try {
-        if (fs.existsSync(DATA_FILE)) {
-            return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-        }
-    } catch (e) {
-        console.error('[DATA] Error reading:', e.message);
-    }
-    return {};
-}
-
-function writeData(data) {
-    try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
-        return true;
-    } catch (e) {
-        console.error('[DATA] Error writing:', e.message);
-        return false;
-    }
-}
 
 // ===== GET LOCAL IP =====
 function getLocalIP() {
@@ -78,32 +55,6 @@ const server = http.createServer((req, res) => {
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
-        return;
-    }
-
-    // ===== API: GET DATA =====
-    if (req.method === 'GET' && req.url === '/api/data') {
-        const data = readData();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(data));
-        return;
-    }
-
-    // ===== API: POST DATA =====
-    if (req.method === 'POST' && req.url === '/api/data') {
-        let body = '';
-        req.on('data', chunk => { body += chunk; });
-        req.on('end', () => {
-            try {
-                const data = JSON.parse(body);
-                writeData(data);
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ ok: true }));
-            } catch (e) {
-                res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Invalid JSON' }));
-            }
-        });
         return;
     }
 
@@ -149,7 +100,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`  ║  Rede:     http://${localIP}:${PORT}          ║`);
     console.log('  ║                                                  ║');
     console.log('  ║  Acesse pelo celular usando o endereço da Rede  ║');
-    console.log('  ║  Dados salvos em: data.json                     ║');
+    console.log('  ║  Banco de dados: Supabase Cloud                 ║');
     console.log('  ╚══════════════════════════════════════════════════╝');
     console.log('');
 

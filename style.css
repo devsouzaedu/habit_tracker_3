@@ -137,6 +137,34 @@ body {
     letter-spacing: 0.05em
 }
 
+.login-toggle {
+    display: flex;
+    background: var(--bg);
+    border: 1px solid var(--brd);
+    border-radius: var(--r);
+    padding: 3px;
+    margin-bottom: 12px;
+}
+
+.login-toggle-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--r) - 2px);
+    color: var(--t2);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 6px;
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.login-toggle-btn.active {
+    background: var(--red);
+    color: #fff;
+}
+
 .hint {
     font-size: 0.78rem;
     color: var(--t3);
