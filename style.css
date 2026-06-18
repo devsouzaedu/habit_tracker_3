@@ -3371,6 +3371,223 @@ body {
     display: none;
 }
 
+/* ===== COACH SELECTION HUD ===== */
+.coach-selector-hud {
+    background: rgba(19, 19, 24, 0.85);
+    border: 1px solid var(--brd);
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.hud-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--t3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.coach-cards-grid {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.coach-card-item {
+    flex: 1;
+    max-width: 130px;
+    background: var(--bg);
+    border: 2px solid var(--brd);
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    user-select: none;
+    overflow: hidden;
+}
+
+.coach-card-item:hover {
+    transform: translateY(-4px) scale(1.03);
+    border-color: var(--brd-h);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+}
+
+.coach-card-portrait {
+    width: 50px;
+    height: 50px;
+    margin: 0 auto 8px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--brd);
+    transition: transform 0.3s ease;
+}
+
+.coach-card-item:hover .coach-card-portrait {
+    transform: scale(1.08);
+}
+
+.coach-card-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: top;
+}
+
+.coach-card-badge {
+    display: inline-block;
+    font-size: 0.58rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: #fff;
+    margin-bottom: 6px;
+    letter-spacing: 0.05em;
+}
+
+.bg-vegeta { background: #6d28d9; }
+.bg-kratos { background: #991b1b; }
+.bg-rocky { background: #ca8a04; }
+
+.coach-card-meta {
+    display: flex;
+    flex-direction: column;
+}
+
+.coach-card-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--t1);
+}
+
+.coach-card-spec {
+    font-size: 0.62rem;
+    color: var(--t3);
+    margin-top: 1px;
+}
+
+/* Active states for selection */
+.coach-card-item.active[data-coach-id="vegeta"] {
+    border-color: #7c3aed;
+    box-shadow: 0 0 12px rgba(124, 58, 237, 0.4);
+    background: rgba(124, 58, 237, 0.05);
+}
+.coach-card-item.active[data-coach-id="vegeta"] .coach-card-portrait {
+    border-color: #7c3aed;
+}
+
+.coach-card-item.active[data-coach-id="kratos"] {
+    border-color: #ef4444;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.05);
+}
+.coach-card-item.active[data-coach-id="kratos"] .coach-card-portrait {
+    border-color: #ef4444;
+}
+
+.coach-card-item.active[data-coach-id="rocky"] {
+    border-color: #eab308;
+    box-shadow: 0 0 12px rgba(234, 179, 8, 0.4);
+    background: rgba(234, 179, 8, 0.05);
+}
+.coach-card-item.active[data-coach-id="rocky"] .coach-card-portrait {
+    border-color: #eab308;
+}
+
+/* ===== ACTIVE COACH STATS HUD ===== */
+.coach-stats-hud {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 140px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 580px) {
+    .coach-stats-hud {
+        width: 100%;
+        margin-top: 8px;
+    }
+}
+
+.stat-bar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.stat-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.5);
+    min-width: 60px;
+}
+
+.stat-bar-outer {
+    flex: 1;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.stat-bar-inner {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.intensity-bar {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.patience-bar {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+}
+
+/* ===== DYNAMIC COACH THEMES ===== */
+.coach-theme-vegeta {
+    background: linear-gradient(135deg, rgba(18, 18, 42, 0.95), rgba(30, 10, 60, 0.9)) !important;
+    border: 1px solid rgba(124, 58, 237, 0.3) !important;
+}
+.coach-theme-vegeta::after {
+    background: linear-gradient(90deg, transparent, #ffd700, #7c3aed, transparent) !important;
+}
+.coach-theme-vegeta .coach-avatar {
+    border-color: #7c3aed !important;
+}
+
+.coach-theme-kratos {
+    background: linear-gradient(135deg, rgba(20, 10, 10, 0.95), rgba(40, 15, 15, 0.9)) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+.coach-theme-kratos::after {
+    background: linear-gradient(90deg, transparent, #b91c1c, #ef4444, transparent) !important;
+}
+.coach-theme-kratos .coach-avatar {
+    border-color: #ef4444 !important;
+}
+
+.coach-theme-rocky {
+    background: linear-gradient(135deg, rgba(15, 20, 30, 0.95), rgba(25, 30, 15, 0.9)) !important;
+    border: 1px solid rgba(234, 179, 8, 0.3) !important;
+}
+.coach-theme-rocky::after {
+    background: linear-gradient(90deg, transparent, #eab308, #1e40af, transparent) !important;
+}
+.coach-theme-rocky .coach-avatar {
+    border-color: #eab308 !important;
+}
+
 /* ===== VEGETA COACH ===== */
 .coach-container {
     display: flex;
@@ -3563,7 +3780,7 @@ body {
     }
 }
 
-.coach-msg-vegeta {
+.coach-msg-vegeta, .coach-msg-kratos, .coach-msg-rocky {
     align-self: flex-start;
 }
 
@@ -3600,6 +3817,20 @@ body {
     background: linear-gradient(135deg, rgba(30, 30, 60, 0.9), rgba(20, 20, 40, 0.95));
     border: 1px solid rgba(100, 60, 200, 0.15);
     color: #e0e0f0;
+    border-top-left-radius: 4px;
+}
+
+.coach-msg-kratos .coach-msg-bubble {
+    background: linear-gradient(135deg, rgba(50, 20, 20, 0.9), rgba(35, 12, 12, 0.95));
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    color: #fcebeb;
+    border-top-left-radius: 4px;
+}
+
+.coach-msg-rocky .coach-msg-bubble {
+    background: linear-gradient(135deg, rgba(25, 30, 40, 0.9), rgba(18, 22, 30, 0.95));
+    border: 1px solid rgba(234, 179, 8, 0.15);
+    color: #fffde6;
     border-top-left-radius: 4px;
 }
 
