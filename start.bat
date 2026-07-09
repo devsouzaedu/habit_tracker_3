@@ -1,10 +1,10 @@
 @echo off
-title Habit Tracker v3
+title Sistema Integrado de Gestão de José Eduardo, versão b1,0.7
 color 0C
 echo.
-echo   ====================================
-echo       HABIT TRACKER v3
-echo   ====================================
+echo   ============================================================
+echo       Sistema Integrado de Gestão de José Eduardo, versão b1,0.7
+echo   ============================================================
 echo.
 
 cd /d "%~dp0"

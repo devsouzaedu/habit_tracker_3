@@ -2337,9 +2337,26 @@
             };
         });
 
+        // Mobile fullscreen input behavior
+        const isMobile = () => window.matchMedia('(max-width: 640px)').matches;
+        $('coach-input').onfocus = () => {
+            if (isMobile()) {
+                $('coach-input-wrap').classList.add('expanded');
+            }
+        };
+        $('coach-input-close').onclick = () => {
+            $('coach-input-wrap').classList.remove('expanded');
+            $('coach-input').blur();
+        };
+
         // Send message
         $('coach-send').onclick = () => sendCoachMessage();
-        $('coach-input').onkeydown = e => { if (e.key === 'Enter') sendCoachMessage(); };
+        $('coach-input').onkeydown = e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendCoachMessage();
+            }
+        };
     }
 
     function switchCoach(coachId) {
@@ -2389,6 +2406,8 @@
         const msg = input.value.trim();
         if (!msg) return;
         input.value = '';
+        $('coach-input-wrap').classList.remove('expanded');
+        input.blur();
         addCoachMessage('user', msg);
         setTimeout(() => {
             const response = getCoachResponse(msg);

@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0b0b0f">
-    <title>Habit Tracker</title>
+    <title>Sistema Integrado de Gestão de José Eduardo, versão b1,0.7</title>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,9 +23,9 @@
     <div id="login-screen" class="login-screen">
         <div class="login-card">
             <div class="login-brand">
-                <div class="login-mark">HT</div>
-                <h1>Habit Tracker</h1>
-                <p>Sistema de Controle Pessoal</p>
+                <img src="public/images/logo.png" alt="Logo" class="login-logo-img">
+                <h1>Sistema Integrado de Gestão de José Eduardo</h1>
+                <p>versão b1,0.7</p>
             </div>
             <form id="login-form" class="login-form" onsubmit="return false">
                 <div class="login-toggle">
@@ -51,7 +51,9 @@
 
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="sidebar-logo">HT</div>
+            <div class="sidebar-logo" title="Sistema Integrado de Gestão de José Eduardo">
+                <img src="public/images/logo.png" alt="Logo" class="sidebar-logo-img">
+            </div>
             <nav class="sidebar-nav">
                 <button class="sidebar-btn active" data-view="tracker" title="Tracker">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -352,9 +354,10 @@
                         </div>
 
                         <!-- Input -->
-                        <div class="coach-input-wrap">
-                            <input type="text" id="coach-input" class="coach-input" placeholder="Pergunte ao Vegeta..."
-                                autocomplete="off">
+                        <div class="coach-input-wrap" id="coach-input-wrap">
+                            <div class="coach-input-header">Escrever Mensagem</div>
+                            <button id="coach-input-close" class="coach-input-close-btn" type="button">✕</button>
+                            <textarea id="coach-input" class="coach-input" placeholder="Pergunte ao Vegeta..." autocomplete="off" rows="1"></textarea>
                             <button id="coach-send" class="coach-send-btn">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">

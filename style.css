@@ -97,18 +97,14 @@ body {
     margin-bottom: 32px
 }
 
-.login-mark {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 52px;
-    height: 52px;
-    background: var(--red);
-    border-radius: var(--r);
-    color: #fff;
-    font-weight: 800;
-    font-size: 1.15rem;
-    margin-bottom: 14px
+.login-logo-img {
+    display: block;
+    margin: 0 auto 16px;
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(230, 0, 42, 0.35);
 }
 
 .login-brand h1 {
@@ -366,6 +362,21 @@ body {
     text-align: center;
     padding: 8px 0 20px;
     cursor: pointer
+}
+
+.sidebar-logo-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+    box-shadow: 0 2px 6px rgba(230, 0, 42, 0.25);
+    transition: transform 0.2s ease;
+}
+
+.sidebar-logo:hover .sidebar-logo-img {
+    transform: scale(1.1);
 }
 
 .sidebar-nav {
@@ -2495,7 +2506,8 @@ body {
 
     .sidebar-logo {
         font-size: 1rem;
-        width: auto
+        width: auto;
+        padding: 8px 0
     }
 
     .sidebar-btn {
@@ -3930,6 +3942,16 @@ body {
     font-size: 0.85rem;
     outline: none;
     transition: border-color 0.2s ease;
+    resize: none;
+    box-sizing: border-box;
+    height: 48px;
+    line-height: 1.4;
+    overflow-y: hidden;
+}
+
+.coach-input-close-btn,
+.coach-input-header {
+    display: none;
 }
 
 .coach-input::placeholder {
@@ -4007,11 +4029,124 @@ body {
     .coach-input {
         padding: 12px 14px;
         font-size: 0.8rem;
+        height: 44px;
     }
 
     .coach-send-btn {
         width: 44px;
         height: 44px;
         border-radius: 12px;
+    }
+
+    /* Fullscreen Note Modal on Mobile */
+    #note-modal.overlay {
+        align-items: stretch;
+        padding: 0;
+    }
+
+    #note-modal .modal {
+        max-height: 100% !important;
+        height: 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        border-radius: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        border: none !important;
+    }
+
+    #note-modal .modal-body {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+        overflow-y: auto !important;
+    }
+
+    #note-modal #n-content {
+        flex: 1 !important;
+        resize: none !important;
+        min-height: 150px !important;
+    }
+
+    /* Fullscreen Coach Input on Mobile */
+    .coach-input-wrap.expanded {
+        position: fixed !important;
+        inset: 0 !important;
+        z-index: 99999 !important;
+        background: var(--bg1) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 16px !important;
+        padding-top: calc(20px + env(safe-area-inset-top, 0px)) !important;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)) !important;
+        gap: 12px !important;
+    }
+
+    .coach-input-wrap.expanded .coach-input-header {
+        display: block !important;
+        font-size: 1rem !important;
+        font-weight: 700 !important;
+        color: #fff !important;
+        text-align: center !important;
+        margin-bottom: 4px !important;
+        position: relative !important;
+    }
+
+    .coach-input-wrap.expanded .coach-input-close-btn {
+        display: flex !important;
+        position: absolute !important;
+        top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+        right: 16px !important;
+        width: 32px !important;
+        height: 32px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 50% !important;
+        color: var(--t3) !important;
+        font-size: 0.95rem !important;
+        cursor: pointer !important;
+        z-index: 10 !important;
+    }
+
+    .coach-input-wrap.expanded .coach-input {
+        flex: 1 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 150px !important;
+        font-size: 0.95rem !important;
+        padding: 16px !important;
+        border-radius: 12px !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        resize: none !important;
+        box-sizing: border-box !important;
+        overflow-y: auto !important;
+        line-height: 1.5 !important;
+    }
+
+    .coach-input-wrap.expanded .coach-send-btn {
+        width: 100% !important;
+        height: 48px !important;
+        border-radius: 12px !important;
+        background: linear-gradient(135deg, var(--red), #b91c1c) !important;
+        font-weight: bold !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        margin-top: auto !important;
+    }
+
+    .coach-input-wrap.expanded .coach-send-btn svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    .coach-input-wrap.expanded .coach-send-btn::after {
+        content: " Enviar Mensagem" !important;
+        font-size: 0.9rem !important;
     }
 }

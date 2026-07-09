@@ -94,7 +94,7 @@ server.listen(PORT, '0.0.0.0', () => {
     const localIP = getLocalIP();
     console.log('');
     console.log('  ╔══════════════════════════════════════════════════╗');
-    console.log('  ║          HABIT TRACKER v3 — SERVIDOR            ║');
+    console.log('  ║   SISTEMA INTEGRADO DE GESTÃO DE JOSÉ EDUARDO    ║');
     console.log('  ╠══════════════════════════════════════════════════╣');
     console.log(`  ║  Local:    http://localhost:${PORT}                ║`);
     console.log(`  ║  Rede:     http://${localIP}:${PORT}          ║`);
