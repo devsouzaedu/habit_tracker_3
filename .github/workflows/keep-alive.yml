@@ -2,21 +2,33 @@ name: Keep Supabase Active
 
 on:
   schedule:
-    # Runs every day at 12:00 UTC (9:00 AM BRT)
-    - cron: '0 12 * * *'
+    # Runs twice every day at 00:00 and 12:00 UTC (9:00 PM and 9:00 AM BRT)
+    - cron: '0 0,12 * * *'
   workflow_dispatch: # Allows manual run
+
+# Required to allow keepalive action to commit and prevent GitHub from disabling the workflow
+permissions:
+  contents: write
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Run ping bot
+      - name: Run robust ping bot
         run: node ping-supabase.js
+
+      - name: Keep GitHub Actions Alive
+        uses: gautamkrishnar/keepalive-workflow@v2
+        with:
+          commit_message: "chore: keep github actions alive [skip ci]"
+          committer_username: "github-actions[bot]"
+          committer_email: "github-actions[bot]@users.noreply.github.com"
+          time_elapsed: 45
