@@ -26,6 +26,7 @@
     const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const DAYS_F = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     const MO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const MO_F = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
     // state
     let weekOff = 0;
@@ -35,6 +36,43 @@
     let supabaseReady = false;
     let supabase = null;
     let mobileSelectedDay = null; // index 0-6 for mobile day view
+
+    // finance state
+    let finMonth = new Date().getMonth();
+    let finYear = new Date().getFullYear();
+    let finCurrentTab = 'transactions';
+    let finSearchTerm = '';
+    let finFilterType = 'all';
+    let finFilterCat = 'all';
+    let finTxModalType = 'out';
+    let finRecModalType = 'out';
+
+    const FIN_CATEGORIES = {
+        // Despesas (out)
+        alimentacao: { id: 'alimentacao', name: 'Alimentação', icon: '🍔', color: '#ff7043', type: 'out' },
+        moradia: { id: 'moradia', name: 'Moradia & Contas', icon: '🏠', color: '#42a5f5', type: 'out' },
+        transporte: { id: 'transporte', name: 'Transporte', icon: '🚗', color: '#ffa726', type: 'out' },
+        lazer: { id: 'lazer', name: 'Lazer & Estilo', icon: '🎮', color: '#ab47bc', type: 'out' },
+        saude: { id: 'saude', name: 'Saúde & Cuidados', icon: '💊', color: '#26a69a', type: 'out' },
+        educacao: { id: 'educacao', name: 'Educação', icon: '📚', color: '#7e57c2', type: 'out' },
+        compras: { id: 'compras', name: 'Compras & Vestuário', icon: '🛍️', color: '#ec407a', type: 'out' },
+        outros: { id: 'outros', name: 'Outras Despesas', icon: '🔄', color: '#78909c', type: 'out' },
+        // Receitas (in)
+        salario: { id: 'salario', name: 'Salário / Renda', icon: '💼', color: '#00e676', type: 'in' },
+        freelance: { id: 'freelance', name: 'Freelance & Projetos', icon: '💻', color: '#00b0ff', type: 'in' },
+        investimentos: { id: 'investimentos', name: 'Investimentos', icon: '📈', color: '#76ff03', type: 'in' },
+        outros_in: { id: 'outros_in', name: 'Outras Entradas', icon: '🎁', color: '#69f0ae', type: 'in' }
+    };
+
+    const FIN_METHODS = {
+        pix: { name: 'Pix', icon: '⚡' },
+        cartao_credito: { name: 'Cartão de Crédito', icon: '💳' },
+        cartao_debito: { name: 'Cartão de Débito', icon: '💳' },
+        dinheiro: { name: 'Dinheiro', icon: '💵' },
+        boleto: { name: 'Boleto', icon: '📄' },
+        transferencia: { name: 'Transferência', icon: '🏦' },
+        outro: { name: 'Outro', icon: '🔄' }
+    };
 
     // workout state
     let woActive = null; // { startTime, muscles, exercises }
@@ -148,7 +186,17 @@
     const svR = r => lSet(KEYS().REC, r);
     const getN = () => lGet(KEYS().NOTES, []);
     const svN = n => lSet(KEYS().NOTES, n);
-    const getF = () => lGet(KEYS().FIN, { balance: 0, log: [] });
+    const getF = () => {
+        const fallback = { balance: 0, log: [], budget: { monthlyLimit: 0, categories: {} }, recurring: [] };
+        const f = lGet(KEYS().FIN, fallback);
+        if (!f || typeof f !== 'object') return fallback;
+        if (typeof f.balance !== 'number') f.balance = 0;
+        if (!Array.isArray(f.log)) f.log = [];
+        if (!f.budget || typeof f.budget !== 'object') f.budget = { monthlyLimit: 0, categories: {} };
+        if (!f.budget.categories || typeof f.budget.categories !== 'object') f.budget.categories = {};
+        if (!Array.isArray(f.recurring)) f.recurring = [];
+        return f;
+    };
     const svF = f => lSet(KEYS().FIN, f);
     const getW = () => lGet(KEYS().WORKOUT, []);
     const svW = w => lSet(KEYS().WORKOUT, w);
@@ -1516,53 +1564,779 @@
     }
 
     // ==================== FINANCE ====================
+
+    function getCatObj(catId, defaultType = 'out') {
+        if (catId && FIN_CATEGORIES[catId]) return FIN_CATEGORIES[catId];
+        return defaultType === 'in' ? FIN_CATEGORIES.outros_in : FIN_CATEGORIES.outros;
+    }
+
+    function isSameMonthYear(isoDate, m, y) {
+        if (!isoDate) return false;
+        const d = new Date(isoDate);
+        return !isNaN(d.getTime()) && d.getMonth() === m && d.getFullYear() === y;
+    }
+
+    function parseEntryDate(dStr) {
+        if (!dStr) return new Date();
+        const d = new Date(dStr);
+        return isNaN(d.getTime()) ? new Date() : d;
+    }
+
+    function setFinTxType(type) {
+        finTxModalType = type;
+        const btnOut = $('fin-type-btn-out'), btnIn = $('fin-type-btn-in');
+        if (type === 'out') {
+            btnOut.classList.add('active');
+            btnIn.classList.remove('active');
+        } else {
+            btnIn.classList.add('active');
+            btnOut.classList.remove('active');
+        }
+        populateCategorySelect($('fin-tx-cat'), type);
+    }
+
+    function setFinRecType(type) {
+        finRecModalType = type;
+        const btnOut = $('fin-rec-btn-out'), btnIn = $('fin-rec-btn-in');
+        if (type === 'out') {
+            btnOut.classList.add('active');
+            btnIn.classList.remove('active');
+        } else {
+            btnIn.classList.add('active');
+            btnOut.classList.remove('active');
+        }
+        populateCategorySelect($('fin-rec-cat'), type);
+    }
+
+    function populateCategorySelect(selectElem, type, selectedValue = null) {
+        if (!selectElem) return;
+        selectElem.innerHTML = Object.values(FIN_CATEGORIES)
+            .filter(c => c.type === type)
+            .map(c => `<option value="${c.id}" ${selectedValue === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`)
+            .join('');
+    }
+
+    function populateFilterCategorySelect() {
+        const sel = $('fin-filter-cat');
+        if (!sel) return;
+        const current = finFilterCat || 'all';
+        let html = '<option value="all">Todas as Categorias</option>';
+        html += '<optgroup label="Despesas">';
+        html += Object.values(FIN_CATEGORIES)
+            .filter(c => c.type === 'out')
+            .map(c => `<option value="${c.id}" ${current === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`)
+            .join('');
+        html += '</optgroup>';
+        html += '<optgroup label="Receitas">';
+        html += Object.values(FIN_CATEGORIES)
+            .filter(c => c.type === 'in')
+            .map(c => `<option value="${c.id}" ${current === c.id ? 'selected' : ''}>${c.icon} ${c.name}</option>`)
+            .join('');
+        html += '</optgroup>';
+        sel.innerHTML = html;
+    }
+
     function initFinance() {
-        const doEntry = type => {
-            const val = parseFloat($('fin-val').value);
-            if (!val || val <= 0) { $('fin-val').style.borderColor = 'var(--fail)'; setTimeout(() => $('fin-val').style.borderColor = '', 1500); return; }
-            const fin = getF();
-            const amt = type === 'in' ? val : -val;
-            fin.balance += amt;
-            fin.log.unshift({
-                id: 'f_' + Date.now(),
-                amount: amt,
-                desc: $('fin-desc').value.trim() || (type === 'in' ? 'Entrada' : 'Saída'),
-                date: new Date().toISOString()
-            });
-            svF(fin);
-            $('fin-val').value = ''; $('fin-desc').value = '';
+        // Month navigation
+        $('fin-prev-month-btn').onclick = () => {
+            finMonth--;
+            if (finMonth < 0) { finMonth = 11; finYear--; }
             renderFinance();
         };
-        $('fin-in-btn').onclick = () => doEntry('in');
-        $('fin-out-btn').onclick = () => doEntry('out');
-        $('fin-val').onkeydown = e => { if (e.key === 'Enter') doEntry('in'); };
+
+        $('fin-next-month-btn').onclick = () => {
+            finMonth++;
+            if (finMonth > 11) { finMonth = 0; finYear++; }
+            renderFinance();
+        };
+
+        $('fin-today-month-btn').onclick = () => {
+            const n = new Date();
+            finMonth = n.getMonth();
+            finYear = n.getFullYear();
+            renderFinance();
+        };
+
+        // Sub-tabs navigation inside finance
+        document.querySelectorAll('.fin-tab[data-fintab]').forEach(tabBtn => {
+            tabBtn.onclick = () => {
+                document.querySelectorAll('.fin-tab[data-fintab]').forEach(b => b.classList.remove('active'));
+                tabBtn.classList.add('active');
+                finCurrentTab = tabBtn.dataset.fintab;
+
+                $('fintab-transactions').classList.toggle('hidden', finCurrentTab !== 'transactions');
+                $('fintab-budget').classList.toggle('hidden', finCurrentTab !== 'budget');
+                $('fintab-recurring').classList.toggle('hidden', finCurrentTab !== 'recurring');
+
+                renderFinance();
+            };
+        });
+
+        // Search & Filters
+        $('fin-search-input').oninput = e => {
+            finSearchTerm = e.target.value.toLowerCase().trim();
+            renderFinanceTransactions();
+        };
+
+        $('fin-filter-type').onchange = e => {
+            finFilterType = e.target.value;
+            renderFinanceTransactions();
+        };
+
+        $('fin-filter-cat').onchange = e => {
+            finFilterCat = e.target.value;
+            renderFinanceTransactions();
+        };
+
+        // Populate category filter dropdown
+        populateFilterCategorySelect();
+
+        // Modals triggers
+        $('fin-open-tx-modal-btn').onclick = () => openFinTxModal();
+        $('fin-quick-budget-btn').onclick = () => openFinBudgetModal();
+        $('fin-edit-budget-link').onclick = () => openFinBudgetModal();
+        $('fin-open-budget-config-btn').onclick = () => openFinBudgetModal();
+        $('fin-add-recurring-btn').onclick = () => openFinRecurringModal();
+
+        // Type switchers inside modals
+        $('fin-type-btn-out').onclick = () => setFinTxType('out');
+        $('fin-type-btn-in').onclick = () => setFinTxType('in');
+        $('fin-rec-btn-out').onclick = () => setFinRecType('out');
+        $('fin-rec-btn-in').onclick = () => setFinRecType('in');
+
+        // Modal save handlers
+        $('fin-tx-save-btn').onclick = saveFinTxModal;
+        $('fin-budget-save-btn').onclick = saveFinBudgetModal;
+        $('fin-rec-save-btn').onclick = saveFinRecurringModal;
+
+        // Enter key in transaction modal value input
+        $('fin-tx-val').onkeydown = e => {
+            if (e.key === 'Enter') saveFinTxModal();
+        };
     }
 
     function renderFinance() {
         const fin = getF();
-        $('balance-amount').textContent = fmtMoney(fin.balance);
-        const log = $('fin-log'), empty = $('fin-empty');
-        if (!fin.log.length) { empty.classList.remove('hidden'); log.innerHTML = ''; return; }
-        empty.classList.add('hidden');
 
-        log.innerHTML = fin.log.map(e => `
-            <div class="fin-entry">
-                <div class="fin-entry-info">
-                    <div class="fin-entry-d">${esc(e.desc)}</div>
-                    <div class="fin-entry-dt">${fmtDt(e.date)}</div>
+        // Ensure fin.balance matches sum of all log entries
+        const computedTotal = fin.log.reduce((acc, x) => acc + (Number(x.amount) || 0), 0);
+        if (Math.abs(fin.balance - computedTotal) > 0.001) {
+            fin.balance = computedTotal;
+            svF(fin);
+        }
+
+        // Header label
+        $('fin-current-month-label').textContent = `${MO_F[finMonth]} ${finYear}`;
+
+        // Get logs for selected month
+        const monthLogs = fin.log.filter(x => isSameMonthYear(x.date, finMonth, finYear));
+
+        let monthIncome = 0;
+        let monthExpense = 0;
+        let incomeCount = 0;
+        let expenseCount = 0;
+
+        monthLogs.forEach(entry => {
+            const amt = Number(entry.amount) || 0;
+            if (amt >= 0) {
+                monthIncome += amt;
+                incomeCount++;
+            } else {
+                monthExpense += Math.abs(amt);
+                expenseCount++;
+            }
+        });
+
+        const monthNet = monthIncome - monthExpense;
+
+        // Update KPIs
+        $('fin-kpi-total-balance').textContent = fmtMoney(fin.balance);
+        $('fin-kpi-month-income').textContent = '+ ' + fmtMoney(monthIncome);
+        $('fin-kpi-income-count').textContent = `${incomeCount} ${incomeCount === 1 ? 'entrada' : 'entradas'}`;
+
+        $('fin-kpi-month-expense').textContent = '- ' + fmtMoney(monthExpense);
+        $('fin-kpi-expense-count').textContent = `${expenseCount} ${expenseCount === 1 ? 'saída' : 'saídas'}`;
+
+        const netEl = $('fin-kpi-month-net');
+        netEl.textContent = (monthNet >= 0 ? '+ ' : '- ') + fmtMoney(Math.abs(monthNet));
+        netEl.className = 'fin-kpi-val ' + (monthNet > 0 ? 'pos' : (monthNet < 0 ? 'neg' : ''));
+
+        const netStatus = $('fin-kpi-net-status');
+        if (monthNet > 0) {
+            netStatus.textContent = 'Superávit no mês ✨';
+            netStatus.style.color = 'var(--grn)';
+        } else if (monthNet < 0) {
+            netStatus.textContent = 'Déficit no mês ⚠️';
+            netStatus.style.color = 'var(--fail)';
+        } else {
+            netStatus.textContent = 'Equilibrado';
+            netStatus.style.color = 'var(--t3)';
+        }
+
+        // Budget Banner
+        const monthlyLimit = Number(fin.budget?.monthlyLimit) || 0;
+        $('fin-budget-spent-txt').textContent = 'Gasto: ' + fmtMoney(monthExpense);
+
+        const badge = $('fin-budget-pct-badge');
+        const pBar = $('fin-budget-progress-bar');
+        const remTxt = $('fin-budget-remaining-txt');
+
+        if (monthlyLimit > 0) {
+            $('fin-budget-limit-txt').textContent = 'Meta: ' + fmtMoney(monthlyLimit);
+            const pct = Math.round((monthExpense / monthlyLimit) * 100);
+            badge.textContent = `${pct}%`;
+
+            badge.classList.remove('warn', 'danger');
+            pBar.classList.remove('warn', 'danger');
+
+            if (pct >= 100) {
+                badge.classList.add('danger');
+                pBar.classList.add('danger');
+                remTxt.textContent = `⚠️ Limite estourado em ${fmtMoney(monthExpense - monthlyLimit)}!`;
+                remTxt.style.color = 'var(--fail)';
+            } else if (pct >= 80) {
+                badge.classList.add('warn');
+                pBar.classList.add('warn');
+                remTxt.textContent = `Resta ${fmtMoney(monthlyLimit - monthExpense)} (Atenção: 80%+ consumido)`;
+                remTxt.style.color = '#ffb300';
+            } else {
+                remTxt.textContent = `Resta ${fmtMoney(monthlyLimit - monthExpense)} para atingir a meta`;
+                remTxt.style.color = 'var(--t2)';
+            }
+
+            pBar.style.width = Math.min(pct, 100) + '%';
+        } else {
+            $('fin-budget-limit-txt').textContent = 'Meta: Não definida';
+            badge.textContent = '0%';
+            badge.classList.remove('warn', 'danger');
+            pBar.classList.remove('warn', 'danger');
+            pBar.style.width = '0%';
+            remTxt.textContent = 'Defina um teto para acompanhar seus gastos';
+            remTxt.style.color = 'var(--t2)';
+        }
+
+        // Render current active tab content
+        if (finCurrentTab === 'transactions') {
+            renderFinanceTransactions(monthLogs);
+            renderFinanceChart(monthLogs);
+        } else if (finCurrentTab === 'budget') {
+            renderFinanceBudget(monthLogs);
+        } else if (finCurrentTab === 'recurring') {
+            renderFinanceRecurring();
+        }
+    }
+
+    function renderFinanceTransactions(monthLogs) {
+        if (!monthLogs) {
+            const fin = getF();
+            monthLogs = fin.log.filter(x => isSameMonthYear(x.date, finMonth, finYear));
+        }
+
+        let filtered = monthLogs.slice();
+
+        // Search text
+        if (finSearchTerm) {
+            filtered = filtered.filter(x => (x.desc || '').toLowerCase().includes(finSearchTerm));
+        }
+
+        // Type filter
+        if (finFilterType === 'out') {
+            filtered = filtered.filter(x => (Number(x.amount) || 0) < 0);
+        } else if (finFilterType === 'in') {
+            filtered = filtered.filter(x => (Number(x.amount) || 0) >= 0);
+        }
+
+        // Category filter
+        if (finFilterCat !== 'all') {
+            filtered = filtered.filter(x => x.category === finFilterCat);
+        }
+
+        $('fin-list-count').textContent = `${filtered.length} ${filtered.length === 1 ? 'registro' : 'registros'}`;
+
+        const listEl = $('fin-tx-list');
+        const emptyEl = $('fin-empty-state');
+
+        if (!filtered.length) {
+            emptyEl.classList.remove('hidden');
+            listEl.innerHTML = '';
+            return;
+        }
+
+        emptyEl.classList.add('hidden');
+
+        listEl.innerHTML = filtered.map(e => {
+            const amt = Number(e.amount) || 0;
+            const isPos = amt >= 0;
+            const cat = getCatObj(e.category, isPos ? 'in' : 'out');
+            const d = parseEntryDate(e.date);
+            const dTxt = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            const methodInfo = FIN_METHODS[e.method] || FIN_METHODS.pix;
+            const isPending = e.status === 'pending';
+            const isRec = !!e.recurringId;
+
+            return `
+                <div class="fin-tx-item">
+                    <div class="fin-tx-cat-icon" style="background:${cat.color}15; border-color:${cat.color}35;">
+                        <span>${cat.icon}</span>
+                    </div>
+                    <div class="fin-tx-info">
+                        <div class="fin-tx-desc">${esc(e.desc || (isPos ? 'Entrada' : 'Saída'))}</div>
+                        <div class="fin-tx-meta">
+                            <span class="fin-tx-date">📅 ${dTxt}</span>
+                            <span class="fin-tx-badge">${cat.name}</span>
+                            <span class="fin-tx-badge">${methodInfo.icon} ${methodInfo.name}</span>
+                            ${isPending ? '<span class="fin-tx-badge pending">⏳ Pendente</span>' : ''}
+                            ${isRec ? '<span class="fin-tx-badge recurring">🔁 Fixa</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="fin-tx-right">
+                        <span class="fin-tx-amount ${isPos ? 'pos' : 'neg'}">
+                            ${isPos ? '+' : ''}${fmtMoney(amt)}
+                        </span>
+                        <div class="fin-tx-actions">
+                            <button class="fin-action-btn" data-fedit="${e.id}" title="Editar">✏️</button>
+                            <button class="fin-action-btn del" data-fdel="${e.id}" title="Excluir">✕</button>
+                        </div>
+                    </div>
                 </div>
-                <span class="fin-amount ${e.amount >= 0 ? 'pos' : 'neg'}">${e.amount >= 0 ? '+' : ''}${fmtMoney(Math.abs(e.amount))}</span>
-                <button class="fin-del" data-fid="${e.id}" title="Excluir">✕</button>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
-        log.querySelectorAll('.fin-del').forEach(b => {
-            b.onclick = () => {
+        // Edit event listeners
+        listEl.querySelectorAll('[data-fedit]').forEach(btn => {
+            btn.onclick = () => {
                 const fin = getF();
-                const entry = fin.log.find(x => x.id === b.dataset.fid);
-                if (entry) { fin.balance -= entry.amount; fin.log = fin.log.filter(x => x.id !== b.dataset.fid); svF(fin); renderFinance(); }
+                const tx = fin.log.find(x => x.id === btn.dataset.fedit);
+                if (tx) openFinTxModal(tx);
             };
         });
+
+        // Delete event listeners
+        listEl.querySelectorAll('[data-fdel]').forEach(btn => {
+            btn.onclick = () => {
+                const fin = getF();
+                const entry = fin.log.find(x => x.id === btn.dataset.fdel);
+                if (entry) {
+                    fin.balance -= (Number(entry.amount) || 0);
+                    fin.log = fin.log.filter(x => x.id !== btn.dataset.fdel);
+                    svF(fin);
+                    renderFinance();
+                }
+            };
+        });
+    }
+
+    function renderFinanceChart(monthLogs) {
+        const wrap = $('fin-category-dist-wrap');
+        const donutContainer = $('fin-donut-container');
+        const legend = $('fin-dist-legend');
+
+        const expenses = monthLogs.filter(x => (Number(x.amount) || 0) < 0);
+        const totalExp = expenses.reduce((acc, x) => acc + Math.abs(Number(x.amount) || 0), 0);
+
+        if (totalExp <= 0) {
+            wrap.classList.add('hidden');
+            return;
+        }
+
+        wrap.classList.remove('hidden');
+        $('fin-dist-total-txt').textContent = `Total gasto: ${fmtMoney(totalExp)}`;
+
+        // Aggregate by category
+        const catMap = {};
+        expenses.forEach(x => {
+            const cId = x.category || 'outros';
+            catMap[cId] = (catMap[cId] || 0) + Math.abs(Number(x.amount) || 0);
+        });
+
+        const sortedCats = Object.entries(catMap)
+            .sort((a, b) => b[1] - a[1])
+            .map(([cId, val]) => ({
+                cat: getCatObj(cId, 'out'),
+                val,
+                pct: Math.round((val / totalExp) * 100)
+            }));
+
+        // Render SVG Donut
+        const size = 140;
+        const strokeWidth = 18;
+        const radius = (size - strokeWidth) / 2;
+        const circumference = 2 * Math.PI * radius;
+        let cumulativeOffset = 0;
+
+        const circles = sortedCats.map(item => {
+            const dashLen = (item.val / totalExp) * circumference;
+            const circleHtml = `
+                <circle cx="${size / 2}" cy="${size / 2}" r="${radius}"
+                    fill="transparent"
+                    stroke="${item.cat.color}"
+                    stroke-width="${strokeWidth}"
+                    stroke-dasharray="${dashLen} ${circumference}"
+                    stroke-dashoffset="${-cumulativeOffset}"
+                    stroke-linecap="round"
+                />
+            `;
+            cumulativeOffset += dashLen;
+            return circleHtml;
+        }).join('');
+
+        donutContainer.innerHTML = `
+            <svg width="${size}" height="${size}" class="fin-donut-svg">
+                ${circles}
+            </svg>
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;">
+                <span style="font-size:0.65rem; color:var(--t3); font-weight:700; text-transform:uppercase;">Gasto</span>
+                <span style="font-size:0.85rem; font-weight:800; color:var(--t1); font-family:'JetBrains Mono',monospace;">${fmtMoney(totalExp)}</span>
+            </div>
+        `;
+
+        // Render Legend
+        legend.innerHTML = sortedCats.map(item => `
+            <div class="fin-dist-row">
+                <div class="fin-dist-row-left">
+                    <span class="fin-dist-dot" style="background:${item.cat.color};"></span>
+                    <span class="fin-dist-cat-name">${item.cat.icon} ${item.cat.name}</span>
+                </div>
+                <div class="fin-dist-bar-wrap">
+                    <div class="fin-dist-bar-fill" style="width:${item.pct}%; background:${item.cat.color};"></div>
+                </div>
+                <div class="fin-dist-row-right">
+                    <span class="fin-dist-val">${fmtMoney(item.val)}</span>
+                    <span class="fin-dist-pct">${item.pct}%</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderFinanceBudget(monthLogs) {
+        const grid = $('fin-budget-categories-grid');
+        const fin = getF();
+
+        const expenses = monthLogs.filter(x => (Number(x.amount) || 0) < 0);
+        const catMap = {};
+        expenses.forEach(x => {
+            const cId = x.category || 'outros';
+            catMap[cId] = (catMap[cId] || 0) + Math.abs(Number(x.amount) || 0);
+        });
+
+        const outCategories = Object.values(FIN_CATEGORIES).filter(c => c.type === 'out');
+
+        grid.innerHTML = outCategories.map(cat => {
+            const spent = catMap[cat.id] || 0;
+            const limit = Number(fin.budget?.categories?.[cat.id]) || 0;
+            const hasLimit = limit > 0;
+            const pct = hasLimit ? Math.round((spent / limit) * 100) : 0;
+
+            let pctClass = '';
+            let barClass = '';
+            let statusText = '';
+
+            if (hasLimit) {
+                if (pct >= 100) {
+                    pctClass = 'danger';
+                    barClass = 'danger';
+                    statusText = `⚠️ Excedeu em ${fmtMoney(spent - limit)}`;
+                } else if (pct >= 80) {
+                    pctClass = 'warn';
+                    barClass = 'warn';
+                    statusText = `Restam ${fmtMoney(limit - spent)}`;
+                } else {
+                    statusText = `Restam ${fmtMoney(limit - spent)}`;
+                }
+            } else {
+                statusText = 'Sem meta definida';
+            }
+
+            return `
+                <div class="fin-cat-budget-card">
+                    <div class="fin-cat-budget-head">
+                        <div class="fin-cat-budget-title">
+                            <span>${cat.icon}</span>
+                            <span>${cat.name}</span>
+                        </div>
+                        ${hasLimit ? `<span class="fin-cat-budget-pct ${pctClass}">${pct}%</span>` : ''}
+                    </div>
+                    <div class="fin-cat-budget-numbers">
+                        <span class="fin-cat-budget-spent">Gasto: ${fmtMoney(spent)}</span>
+                        <span class="fin-cat-budget-limit">${hasLimit ? 'Meta: ' + fmtMoney(limit) : 'Meta: —'}</span>
+                    </div>
+                    <div class="fin-progress-track">
+                        <div class="fin-progress-bar ${barClass}" style="width: ${hasLimit ? Math.min(pct, 100) : 0}%; background-color: ${hasLimit ? '' : cat.color};"></div>
+                    </div>
+                    <div class="fin-cat-budget-foot">
+                        <span>${statusText}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderFinanceRecurring() {
+        const fin = getF();
+        const listEl = $('fin-recurring-list');
+        const emptyEl = $('fin-recurring-empty');
+        const countEl = $('fin-recurring-count');
+
+        const recurring = fin.recurring || [];
+        countEl.textContent = `${recurring.length} ${recurring.length === 1 ? 'cadastrada' : 'cadastradas'}`;
+
+        if (!recurring.length) {
+            emptyEl.classList.remove('hidden');
+            listEl.innerHTML = '';
+            return;
+        }
+
+        emptyEl.classList.add('hidden');
+
+        listEl.innerHTML = recurring.map(r => {
+            const isPos = r.type === 'in';
+            const cat = getCatObj(r.category, isPos ? 'in' : 'out');
+            const isLaunched = fin.log.some(x => x.recurringId === r.id && isSameMonthYear(x.date, finMonth, finYear));
+
+            return `
+                <div class="fin-recurring-item">
+                    <div class="fin-tx-cat-icon" style="background:${cat.color}15; border-color:${cat.color}35;">
+                        <span>${cat.icon}</span>
+                    </div>
+                    <div class="fin-recurring-info-col">
+                        <div class="fin-recurring-desc">${esc(r.desc)}</div>
+                        <div class="fin-recurring-meta">
+                            <span>📅 Dia ${r.day || 1} de cada mês</span>
+                            <span class="fin-tx-badge">${cat.name}</span>
+                            <span class="fin-tx-badge">${isPos ? 'Receita Fixa' : 'Despesa Fixa'}</span>
+                        </div>
+                    </div>
+                    <div class="fin-tx-right">
+                        <span class="fin-tx-amount ${isPos ? 'pos' : 'neg'}">
+                            ${isPos ? '+' : ''}${fmtMoney(r.amount)}
+                        </span>
+                        <div class="fin-recurring-actions">
+                            ${isLaunched ? `
+                                <span class="fin-rec-launch-btn launched" title="Já lançado no extrato deste mês">
+                                    ✅ Lançada no mês
+                                </span>
+                            ` : `
+                                <button class="fin-rec-launch-btn" data-reclaunch="${r.id}">
+                                    ⚡ Lançar no mês
+                                </button>
+                            `}
+                            <button class="fin-action-btn del" data-recdel="${r.id}" title="Excluir conta fixa">✕</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Launch in month listeners
+        listEl.querySelectorAll('[data-reclaunch]').forEach(btn => {
+            btn.onclick = () => {
+                const recId = btn.dataset.reclaunch;
+                const rec = fin.recurring.find(x => x.id === recId);
+                if (!rec) return;
+
+                const day = Math.min(Math.max(Number(rec.day) || 1, 1), 28);
+                const launchDate = new Date(finYear, finMonth, day, 12, 0, 0);
+                const amt = rec.type === 'in' ? Math.abs(rec.amount) : -Math.abs(rec.amount);
+
+                fin.log.unshift({
+                    id: 'f_' + Date.now(),
+                    recurringId: rec.id,
+                    amount: amt,
+                    desc: rec.desc,
+                    date: launchDate.toISOString(),
+                    category: rec.category || (rec.type === 'in' ? 'salario' : 'outros'),
+                    method: 'pix',
+                    status: 'paid'
+                });
+                fin.balance += amt;
+
+                svF(fin);
+                renderFinance();
+            };
+        });
+
+        // Delete recurring bill listener
+        listEl.querySelectorAll('[data-recdel]').forEach(btn => {
+            btn.onclick = () => {
+                fin.recurring = fin.recurring.filter(x => x.id !== btn.dataset.recdel);
+                svF(fin);
+                renderFinance();
+            };
+        });
+    }
+
+    // Modal: Transaction
+    function openFinTxModal(tx = null) {
+        const modal = $('fin-tx-modal');
+        $('fin-tx-id').value = tx ? tx.id : '';
+        $('fin-tx-modal-title').textContent = tx ? 'Editar Transação' : 'Nova Transação';
+
+        const type = tx ? (tx.amount >= 0 ? 'in' : 'out') : 'out';
+        setFinTxType(type);
+
+        $('fin-tx-val').value = tx ? Math.abs(tx.amount).toFixed(2) : '';
+        $('fin-tx-desc').value = tx ? tx.desc : '';
+
+        if (tx && tx.category) {
+            $('fin-tx-cat').value = tx.category;
+        }
+
+        const dateVal = tx && tx.date ? dk(new Date(tx.date)) : dk(new Date(finYear, finMonth, new Date().getDate()));
+        $('fin-tx-date').value = dateVal;
+
+        $('fin-tx-method').value = tx ? (tx.method || 'pix') : 'pix';
+        $('fin-tx-status').value = tx ? (tx.status || 'paid') : 'paid';
+
+        modal.classList.remove('hidden');
+        setTimeout(() => $('fin-tx-val').focus(), 50);
+    }
+
+    function saveFinTxModal() {
+        const val = parseFloat($('fin-tx-val').value);
+        if (!val || val <= 0) {
+            $('fin-tx-val').style.borderColor = 'var(--fail)';
+            setTimeout(() => $('fin-tx-val').style.borderColor = '', 1500);
+            return;
+        }
+
+        const fin = getF();
+        const txId = $('fin-tx-id').value;
+        const type = finTxModalType;
+        const amt = type === 'in' ? val : -val;
+        const desc = $('fin-tx-desc').value.trim() || (type === 'in' ? 'Receita' : 'Despesa');
+        const cat = $('fin-tx-cat').value || (type === 'in' ? 'salario' : 'outros');
+        const dateInput = $('fin-tx-date').value;
+        const dateObj = dateInput ? new Date(dateInput + 'T12:00:00') : new Date();
+        const method = $('fin-tx-method').value || 'pix';
+        const status = $('fin-tx-status').value || 'paid';
+
+        if (txId) {
+            // Edit existing
+            const index = fin.log.findIndex(x => x.id === txId);
+            if (index !== -1) {
+                const oldAmt = fin.log[index].amount;
+                fin.balance = fin.balance - oldAmt + amt;
+                fin.log[index] = {
+                    ...fin.log[index],
+                    amount: amt,
+                    desc,
+                    category: cat,
+                    date: dateObj.toISOString(),
+                    method,
+                    status
+                };
+            }
+        } else {
+            // Add new
+            fin.balance += amt;
+            fin.log.unshift({
+                id: 'f_' + Date.now(),
+                amount: amt,
+                desc,
+                category: cat,
+                date: dateObj.toISOString(),
+                method,
+                status
+            });
+        }
+
+        svF(fin);
+        $('fin-tx-modal').classList.add('hidden');
+        renderFinance();
+    }
+
+    // Modal: Budget Configuration
+    function openFinBudgetModal() {
+        const fin = getF();
+        $('fin-budget-global-input').value = fin.budget?.monthlyLimit || '';
+
+        const container = $('fin-budget-cats-inputs');
+        const outCategories = Object.values(FIN_CATEGORIES).filter(c => c.type === 'out');
+
+        container.innerHTML = outCategories.map(cat => {
+            const currentLim = fin.budget?.categories?.[cat.id] || '';
+            return `
+                <div class="fin-budget-cat-item">
+                    <label for="fin-b-cat-${cat.id}">${cat.icon} ${cat.name}</label>
+                    <input type="number" id="fin-b-cat-${cat.id}" class="input"
+                        placeholder="R$ 0,00" step="20" min="0" value="${currentLim}">
+                </div>
+            `;
+        }).join('');
+
+        $('fin-budget-modal').classList.remove('hidden');
+        setTimeout(() => $('fin-budget-global-input').focus(), 50);
+    }
+
+    function saveFinBudgetModal() {
+        const fin = getF();
+        const globalLimit = parseFloat($('fin-budget-global-input').value) || 0;
+        const categories = {};
+
+        Object.values(FIN_CATEGORIES).filter(c => c.type === 'out').forEach(cat => {
+            const input = $(`fin-b-cat-${cat.id}`);
+            if (input) {
+                const lim = parseFloat(input.value) || 0;
+                if (lim > 0) categories[cat.id] = lim;
+            }
+        });
+
+        fin.budget = {
+            monthlyLimit: globalLimit,
+            categories
+        };
+
+        svF(fin);
+        $('fin-budget-modal').classList.add('hidden');
+        renderFinance();
+    }
+
+    // Modal: Recurring Bills
+    function openFinRecurringModal() {
+        $('fin-rec-id').value = '';
+        $('fin-recurring-modal-title').textContent = 'Nova Conta Fixa / Recorrente';
+        setFinRecType('out');
+        $('fin-rec-desc').value = '';
+        $('fin-rec-val').value = '';
+        $('fin-rec-day').value = '5';
+        $('fin-recurring-modal').classList.remove('hidden');
+        setTimeout(() => $('fin-rec-desc').focus(), 50);
+    }
+
+    function saveFinRecurringModal() {
+        const desc = $('fin-rec-desc').value.trim();
+        const val = parseFloat($('fin-rec-val').value);
+        const day = parseInt($('fin-rec-day').value, 10) || 1;
+        const cat = $('fin-rec-cat').value || 'moradia';
+
+        if (!desc) {
+            $('fin-rec-desc').style.borderColor = 'var(--fail)';
+            setTimeout(() => $('fin-rec-desc').style.borderColor = '', 1500);
+            return;
+        }
+
+        if (!val || val <= 0) {
+            $('fin-rec-val').style.borderColor = 'var(--fail)';
+            setTimeout(() => $('fin-rec-val').style.borderColor = '', 1500);
+            return;
+        }
+
+        const fin = getF();
+        if (!Array.isArray(fin.recurring)) fin.recurring = [];
+
+        fin.recurring.push({
+            id: 'rec_' + Date.now(),
+            type: finRecModalType,
+            desc,
+            amount: val,
+            category: cat,
+            day: Math.min(Math.max(day, 1), 31),
+            active: true
+        });
+
+        svF(fin);
+        $('fin-recurring-modal').classList.add('hidden');
+        renderFinance();
     }
 
     // ==================== WORKOUT ====================

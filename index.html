@@ -14,7 +14,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=12">
+    <link rel="stylesheet" href="style.css?v=13">
 </head>
 
 <body>
@@ -185,26 +185,181 @@
 
             <!-- ===== FINANCE ===== -->
             <section id="finance-view" class="view hidden">
-                <div class="balance-hero">
-                    <span class="balance-label">Saldo Guardado</span>
-                    <span class="balance-amount" id="balance-amount">R$ 0,00</span>
-                </div>
-
-                <div class="fin-form card">
-                    <div class="fin-form-row">
-                        <input type="number" id="fin-val" class="input" placeholder="Valor" step="0.01" min="0">
-                        <input type="text" id="fin-desc" class="input" placeholder="Descrição (opcional)">
-                        <button id="fin-in-btn" class="btn-green">+ Entrada</button>
-                        <button id="fin-out-btn" class="btn-fail">− Saída</button>
+                <!-- Header Toolbar: Navigation by Month/Year & Actions -->
+                <div class="fin-header-row">
+                    <div class="fin-period-selector">
+                        <button id="fin-prev-month-btn" class="btn-icon" title="Mês anterior">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                        </button>
+                        <div class="fin-month-display">
+                            <span id="fin-current-month-label" class="fin-month-title">Mês</span>
+                            <button id="fin-today-month-btn" class="fin-pill-btn">Mês Atual</button>
+                        </div>
+                        <button id="fin-next-month-btn" class="btn-icon" title="Próximo mês">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="fin-header-actions">
+                        <button id="fin-quick-budget-btn" class="btn-ghost-sm" title="Ajustar Metas">🎯 Metas</button>
+                        <button id="fin-open-tx-modal-btn" class="btn-red">+ Nova Transação</button>
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-head">
-                        <span class="card-title">Histórico</span>
+                <!-- KPI Cards: Saldo Total, Receitas do Mês, Despesas do Mês, Balanço do Mês -->
+                <div class="fin-kpis-grid">
+                    <div class="fin-kpi-card">
+                        <div class="fin-kpi-head">
+                            <span class="fin-kpi-label">Saldo Acumulado</span>
+                            <span class="fin-kpi-icon">💰</span>
+                        </div>
+                        <div class="fin-kpi-val" id="fin-kpi-total-balance">R$ 0,00</div>
+                        <span class="fin-kpi-sub">Total líquido geral</span>
                     </div>
-                    <div id="fin-log"></div>
-                    <div id="fin-empty" class="empty-msg-sm">Nenhuma movimentação</div>
+
+                    <div class="fin-kpi-card">
+                        <div class="fin-kpi-head">
+                            <span class="fin-kpi-label">Receitas no Mês</span>
+                            <span class="fin-kpi-icon">📈</span>
+                        </div>
+                        <div class="fin-kpi-val pos" id="fin-kpi-month-income">+ R$ 0,00</div>
+                        <span class="fin-kpi-sub" id="fin-kpi-income-count">0 entradas</span>
+                    </div>
+
+                    <div class="fin-kpi-card">
+                        <div class="fin-kpi-head">
+                            <span class="fin-kpi-label">Despesas no Mês</span>
+                            <span class="fin-kpi-icon">📉</span>
+                        </div>
+                        <div class="fin-kpi-val neg" id="fin-kpi-month-expense">- R$ 0,00</div>
+                        <span class="fin-kpi-sub" id="fin-kpi-expense-count">0 saídas</span>
+                    </div>
+
+                    <div class="fin-kpi-card">
+                        <div class="fin-kpi-head">
+                            <span class="fin-kpi-label">Resultado do Mês</span>
+                            <span class="fin-kpi-icon">⚖️</span>
+                        </div>
+                        <div class="fin-kpi-val" id="fin-kpi-month-net">R$ 0,00</div>
+                        <span class="fin-kpi-sub" id="fin-kpi-net-status">Equilibrado</span>
+                    </div>
+                </div>
+
+                <!-- Monthly Budget Hero Bar -->
+                <div class="fin-budget-banner card">
+                    <div class="fin-budget-banner-header">
+                        <div class="fin-budget-banner-info">
+                            <span class="fin-budget-tag">🎯 PLANEJAMENTO DO MÊS</span>
+                            <div class="fin-budget-values">
+                                <span class="fin-budget-spent" id="fin-budget-spent-txt">Gasto: R$ 0,00</span>
+                                <span class="fin-budget-divider">/</span>
+                                <span class="fin-budget-limit" id="fin-budget-limit-txt">Meta: Não definida</span>
+                            </div>
+                        </div>
+                        <div class="fin-budget-pct-badge" id="fin-budget-pct-badge">0%</div>
+                    </div>
+                    <div class="fin-progress-track">
+                        <div class="fin-progress-bar" id="fin-budget-progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="fin-budget-banner-foot">
+                        <span id="fin-budget-remaining-txt">Defina um teto para acompanhar seus gastos</span>
+                        <button id="fin-edit-budget-link" class="fin-link-btn">Definir Orçamento ⚙️</button>
+                    </div>
+                </div>
+
+                <!-- Sub-Navigation Tabs inside Finance -->
+                <div class="fin-tabs">
+                    <button class="fin-tab active" data-fintab="transactions">📝 Transações do Mês</button>
+                    <button class="fin-tab" data-fintab="budget">📊 Metas por Categoria</button>
+                    <button class="fin-tab" data-fintab="recurring">🔁 Contas Fixas & Recorrentes</button>
+                </div>
+
+                <!-- TAB 1: TRANSACTIONS -->
+                <div id="fintab-transactions" class="fin-tab-content">
+                    <!-- Distribution Visual Summary -->
+                    <div id="fin-category-dist-wrap" class="card fin-dist-card hidden">
+                        <div class="card-head">
+                            <span class="card-title">Distribuição de Gastos</span>
+                            <span class="card-sub" id="fin-dist-total-txt">Total gasto: R$ 0,00</span>
+                        </div>
+                        <div class="fin-dist-body">
+                            <div class="fin-donut-container" id="fin-donut-container"></div>
+                            <div class="fin-dist-legend" id="fin-dist-legend"></div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Toolbar -->
+                    <div class="fin-filter-bar">
+                        <div class="fin-search-box">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="fin-search-input" class="input" placeholder="Buscar lançamentos...">
+                        </div>
+                        <div class="fin-filter-group">
+                            <select id="fin-filter-type" class="input fin-select">
+                                <option value="all">Todos os Tipos</option>
+                                <option value="out">Somente Saídas</option>
+                                <option value="in">Somente Entradas</option>
+                            </select>
+                            <select id="fin-filter-cat" class="input fin-select">
+                                <option value="all">Todas as Categorias</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Transaction List -->
+                    <div class="card">
+                        <div class="card-head">
+                            <span class="card-title" id="fin-list-title">Extrato do Mês</span>
+                            <span class="card-sub" id="fin-list-count">0 registros</span>
+                        </div>
+                        <div id="fin-tx-list" class="fin-tx-list"></div>
+                        <div id="fin-empty-state" class="empty-msg hidden">
+                            <p>Nenhuma transação encontrada</p>
+                            <span>Clique em <b>+ Nova Transação</b> para adicionar entradas ou despesas neste mês.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: BUDGET PLANNER -->
+                <div id="fintab-budget" class="fin-tab-content hidden">
+                    <div class="fin-budget-top card">
+                        <div class="fin-budget-top-info">
+                            <h3>🎯 Metas de Gastos por Categoria</h3>
+                            <p>Monitore o limite de cada categoria para garantir que suas despesas permaneçam dentro do planejado.</p>
+                        </div>
+                        <button id="fin-open-budget-config-btn" class="btn-red-outline">⚙️ Ajustar Limites</button>
+                    </div>
+
+                    <div class="fin-budget-categories-grid" id="fin-budget-categories-grid"></div>
+                </div>
+
+                <!-- TAB 3: RECURRING BILLS -->
+                <div id="fintab-recurring" class="fin-tab-content hidden">
+                    <div class="fin-recurring-top card">
+                        <div class="fin-recurring-info">
+                            <h3>🔁 Contas Fixas & Recorrentes</h3>
+                            <p>Cadastre contas mensais previsíveis (aluguel, internet, condomínio, salário). Lance-as no extrato do mês com apenas 1 clique.</p>
+                        </div>
+                        <button id="fin-add-recurring-btn" class="btn-red">+ Nova Conta Fixa</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <span class="card-title">Suas Contas Recorrentes</span>
+                            <span class="card-sub" id="fin-recurring-count">0 cadastradas</span>
+                        </div>
+                        <div id="fin-recurring-list" class="fin-recurring-list"></div>
+                        <div id="fin-recurring-empty" class="empty-msg hidden">
+                            <p>Nenhuma conta recorrente cadastrada</p>
+                            <span>Adicione gastos fixos ou recebimentos mensais recorrentes.</span>
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -561,9 +716,144 @@
         </div>
     </div>
 
+    <!-- ===== MODAL: FINANCE TRANSACTION ===== -->
+    <div id="fin-tx-modal" class="overlay hidden">
+        <div class="modal">
+            <div class="modal-top">
+                <h3 id="fin-tx-modal-title">Nova Transação</h3>
+                <button class="close-btn" data-close="fin-tx-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="fin-tx-id">
+                <div class="fin-type-toggle">
+                    <button type="button" id="fin-type-btn-out" class="fin-type-btn active" data-fintype="out">− Despesa (Saída)</button>
+                    <button type="button" id="fin-type-btn-in" class="fin-type-btn" data-fintype="in">+ Receita (Entrada)</button>
+                </div>
+
+                <div>
+                    <label class="lbl">Valor (R$)</label>
+                    <input type="number" id="fin-tx-val" class="input" placeholder="0,00" step="0.01" min="0.01" required>
+                </div>
+
+                <div>
+                    <label class="lbl">Descrição</label>
+                    <input type="text" id="fin-tx-desc" class="input" placeholder="Ex: Supermercado, Salário, Uber..." autocomplete="off">
+                </div>
+
+                <div class="fin-row-2col">
+                    <div>
+                        <label class="lbl">Categoria</label>
+                        <select id="fin-tx-cat" class="input"></select>
+                    </div>
+                    <div>
+                        <label class="lbl">Data</label>
+                        <input type="date" id="fin-tx-date" class="input">
+                    </div>
+                </div>
+
+                <div class="fin-row-2col">
+                    <div>
+                        <label class="lbl">Forma de Pagamento</label>
+                        <select id="fin-tx-method" class="input">
+                            <option value="pix">⚡ Pix</option>
+                            <option value="cartao_credito">💳 Cartão de Crédito</option>
+                            <option value="cartao_debito">💳 Cartão de Débito</option>
+                            <option value="dinheiro">💵 Dinheiro</option>
+                            <option value="boleto">📄 Boleto</option>
+                            <option value="transferencia">🏦 Transferência</option>
+                            <option value="outro">🔄 Outro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="lbl">Situação</label>
+                        <select id="fin-tx-status" class="input">
+                            <option value="paid">✅ Pago / Recebido</option>
+                            <option value="pending">⏳ Pendente / Agendado</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="fin-tx-modal">Cancelar</button>
+                <button id="fin-tx-save-btn" class="btn-red">Salvar Transação</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: FINANCE BUDGET CONFIG ===== -->
+    <div id="fin-budget-modal" class="overlay hidden">
+        <div class="modal modal-wide">
+            <div class="modal-top">
+                <h3>🎯 Planejador de Orçamento Mensal</h3>
+                <button class="close-btn" data-close="fin-budget-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="lbl">Teto / Limite Geral de Gastos do Mês (R$)</label>
+                    <input type="number" id="fin-budget-global-input" class="input" placeholder="Ex: 3500.00" step="50" min="0">
+                    <span class="fin-input-hint">Valor máximo total planejado para despesas no mês. Deixe 0 para desativar.</span>
+                </div>
+
+                <div class="fin-modal-divider"></div>
+
+                <div>
+                    <label class="lbl">Limites por Categoria de Despesa (R$)</label>
+                    <p class="fin-input-hint" style="margin-bottom: 8px;">Defina metas específicas para as categorias que deseja controlar de perto:</p>
+                    <div id="fin-budget-cats-inputs" class="fin-budget-inputs-grid"></div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="fin-budget-modal">Cancelar</button>
+                <button id="fin-budget-save-btn" class="btn-red">Salvar Orçamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: RECURRING BILL ===== -->
+    <div id="fin-recurring-modal" class="overlay hidden">
+        <div class="modal">
+            <div class="modal-top">
+                <h3 id="fin-recurring-modal-title">Nova Conta Recorrente</h3>
+                <button class="close-btn" data-close="fin-recurring-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="fin-rec-id">
+                <div class="fin-type-toggle">
+                    <button type="button" id="fin-rec-btn-out" class="fin-type-btn active" data-rectype="out">− Despesa Fixa</button>
+                    <button type="button" id="fin-rec-btn-in" class="fin-type-btn" data-rectype="in">+ Receita Recorrente</button>
+                </div>
+
+                <div>
+                    <label class="lbl">Descrição</label>
+                    <input type="text" id="fin-rec-desc" class="input" placeholder="Ex: Aluguel, Internet, Academia, Salário..." autocomplete="off">
+                </div>
+
+                <div class="fin-row-2col">
+                    <div>
+                        <label class="lbl">Valor Previsto (R$)</label>
+                        <input type="number" id="fin-rec-val" class="input" placeholder="0,00" step="0.01" min="0.01">
+                    </div>
+                    <div>
+                        <label class="lbl">Dia do Vencimento</label>
+                        <input type="number" id="fin-rec-day" class="input" placeholder="ex: 10" min="1" max="31" value="5">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="lbl">Categoria</label>
+                    <select id="fin-rec-cat" class="input"></select>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="fin-recurring-modal">Cancelar</button>
+                <button id="fin-rec-save-btn" class="btn-red">Salvar Conta Fixa</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="app.js?v=12"></script>
+    <script src="app.js?v=13"></script>
 </body>
 
 </html>
