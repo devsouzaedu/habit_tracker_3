@@ -178,6 +178,20 @@ body {
     min-height: 1.1em
 }
 
+.forgot-link {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    color: var(--t3);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: color 0.2s
+}
+
+.forgot-link:hover {
+    color: var(--red)
+}
+
 /* ===== INPUTS ===== */
 .input {
     width: 100%;

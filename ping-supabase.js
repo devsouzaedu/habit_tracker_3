@@ -34,32 +34,20 @@ async function ping() {
     let writeSuccess = false;
     let readSuccess = false;
 
-    // STEP 1: Execute a write transaction (UPSERT)
-    // Writing to the database completely bypasses edge caches (Cloudflare/Kong)
-    // and forces PostgreSQL to register write-ahead log (WAL) and transaction activity.
-    console.log('\n[1/2] Performing database write transaction (UPSERT heartbeat)...');
+    // STEP 1: Database write via RPC. The anon key can no longer write to user_data (RLS),
+    // so it calls keepalive_ping() (SECURITY DEFINER, see supabase-migration.sql), which
+    // upserts a row in the internal `keepalive` table and registers real Postgres activity.
+    console.log('\n[1/2] Performing database write transaction (RPC keepalive_ping)...');
     try {
-        const timestamp = new Date().toISOString();
-        const payload = {
-            key: '_keepalive',
-            data: {
-                last_ping: timestamp,
-                client: 'supabase-keepalive-bot',
-                ping_count: Date.now()
-            },
-            updated_at: timestamp
-        };
-
-        const writeResponse = await fetch(`${url}/rest/v1/user_data?on_conflict=key`, {
+        const writeResponse = await fetch(`${url}/rest/v1/rpc/keepalive_ping`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'apikey': key,
                 'Authorization': `Bearer ${key}`,
-                'Prefer': 'resolution=merge-duplicates,return=minimal',
                 'Cache-Control': 'no-cache, no-store'
             },
-            body: JSON.stringify(payload)
+            body: '{}'
         });
 
         if (writeResponse.ok) {
@@ -73,10 +61,10 @@ async function ping() {
         console.warn(`⚠️ Write transaction exception: ${err.message}`);
     }
 
-    // STEP 2: Execute an anti-cache SELECT query
-    console.log('\n[2/2] Performing anti-cache SELECT query...');
+    // STEP 2: Anti-cache request to the REST API root (no table access needed)
+    console.log('\n[2/2] Performing anti-cache API request...');
     try {
-        const readResponse = await fetch(`${url}/rest/v1/user_data?key=eq._keepalive&select=key,updated_at&limit=1`, {
+        const readResponse = await fetch(`${url}/rest/v1/?nocache=${Date.now()}`, {
             method: 'GET',
             headers: {
                 'apikey': key,
@@ -87,23 +75,22 @@ async function ping() {
         });
 
         if (readResponse.ok) {
-            const data = await readResponse.text();
-            console.log(`✅ Read query successful (HTTP ${readResponse.status}): ${data.slice(0, 100)}`);
+            console.log(`✅ API request successful (HTTP ${readResponse.status})`);
             readSuccess = true;
         } else {
             const errText = await readResponse.text();
-            console.warn(`⚠️ Read query returned HTTP ${readResponse.status}: ${errText}`);
+            console.warn(`⚠️ API request returned HTTP ${readResponse.status}: ${errText.slice(0, 200)}`);
         }
     } catch (err) {
-        console.warn(`⚠️ Read query exception: ${err.message}`);
+        console.warn(`⚠️ API request exception: ${err.message}`);
     }
 
     // Validation
-    if (writeSuccess || readSuccess) {
+    if (writeSuccess) {
         console.log('\n🎉 SUCCESS: Supabase project is active and healthy!');
         process.exit(0);
     } else {
-        console.error('\n❌ FAILURE: Both write and read operations failed. Project might be paused or credentials invalid.');
+        console.error('\n❌ FAILURE: Database write (keepalive_ping) failed. Did you run supabase-migration.sql? Project might also be paused or credentials invalid.');
         process.exit(1);
     }
 }

@@ -32,15 +32,27 @@
                     <button type="button" id="login-toggle-signin" class="login-toggle-btn active">Entrar</button>
                     <button type="button" id="login-toggle-signup" class="login-toggle-btn">Criar Conta</button>
                 </div>
-                <label for="login-uid">Seu ID</label>
-                <input type="text" id="login-uid" class="input" placeholder="ex: eduardo" autocomplete="off" autofocus>
+
+                <div id="display-name-wrap" class="hidden">
+                    <label for="login-display-name">Seu Nome</label>
+                    <input type="text" id="login-display-name" class="input" placeholder="Ex: José Eduardo" autocomplete="name">
+                </div>
+
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" class="input" placeholder="seu@email.com" autocomplete="email" autofocus>
+
                 <label for="login-pw">Senha</label>
-                <input type="password" id="login-pw" class="input" placeholder="••••••" autocomplete="off">
+                <input type="password" id="login-pw" class="input" placeholder="Min. 6 caracteres" autocomplete="current-password">
+
                 <div id="signup-confirm-wrap" class="hidden">
                     <label for="login-pw-confirm">Confirmar Senha</label>
-                    <input type="password" id="login-pw-confirm" class="input" placeholder="••••••" autocomplete="off">
+                    <input type="password" id="login-pw-confirm" class="input" placeholder="Repita a senha" autocomplete="new-password">
                 </div>
+
                 <button type="submit" id="login-btn" class="btn-red">Entrar</button>
+
+                <a href="#" id="forgot-password-link" class="forgot-link">Esqueci minha senha</a>
+
                 <span id="login-err" class="err-msg"></span>
             </form>
         </div>
@@ -853,7 +865,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="app.js?v=13"></script>
+    <script src="app.js?v=14"></script>
 </body>
 
 </html>

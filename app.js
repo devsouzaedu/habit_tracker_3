@@ -8,21 +8,17 @@
     const KEY_PREFIX_BASE = 'ht_';
     let currentUserId = null;
 
-    // Keys are dynamically prefixed with user ID
+    // Keys are dynamically prefixed with user ID (UUID from Supabase Auth)
     function KEYS() {
         const p = currentUserId ? `ht_${currentUserId}_` : 'ht_';
         return {
-            PW: `${p}password`,
             HABITS: `${p}habits`,
             REC: `${p}records`,
             NOTES: `${p}notes`,
             FIN: `${p}finance`,
-            WORKOUT: `${p}workouts`,
-            AUTH: 'ht_auth', // shared
-            LAST_UID: 'ht_last_uid' // shared: remember last user id
+            WORKOUT: `${p}workouts`
         };
     }
-    const DEF_PW = '1234';
     const DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const DAYS_F = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
     const MO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -166,6 +162,67 @@
         }
     }
 
+    // ==================== SUPABASE AUTH HELPERS ====================
+    async function getSession() {
+        if (!supabaseReady) return null;
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+            console.error('[AUTH] Session error:', error.message);
+            return null;
+        }
+        return session;
+    }
+
+    async function signUpWithEmail(email, password, displayName) {
+        if (!supabaseReady) throw new Error('Supabase não conectado');
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: { display_name: displayName } }
+        });
+        if (error) throw error;
+        return data;
+    }
+
+    async function signInWithEmail(email, password) {
+        if (!supabaseReady) throw new Error('Supabase não conectado');
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        return data;
+    }
+
+    async function signOut() {
+        if (!supabaseReady) return;
+        const { error } = await supabase.auth.signOut();
+        if (error) console.error('[AUTH] Sign out error:', error.message);
+    }
+
+    async function resetPassword(email) {
+        if (!supabaseReady) throw new Error('Supabase não conectado');
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin
+        });
+        if (error) throw error;
+    }
+
+    async function updatePassword(newPassword) {
+        if (!supabaseReady) throw new Error('Supabase não conectado');
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) throw error;
+    }
+
+    function translateAuthError(msg) {
+        const translations = {
+            'Invalid login credentials': 'Email ou senha incorretos',
+            'Email not confirmed': 'Email não confirmado. Verifique sua caixa de entrada.',
+            'User already registered': 'Este email já está cadastrado',
+            'Password should be at least 6 characters': 'Senha deve ter pelo menos 6 caracteres',
+            'Unable to validate email address': 'Email inválido',
+            'Signup requires a valid password': 'Digite uma senha válida'
+        };
+        return translations[msg] || msg;
+    }
+
     // ==================== STORAGE LAYER ====================
     // Reads from localStorage (instant), writes to both localStorage AND Supabase
 
@@ -178,8 +235,7 @@
         syncToSupabase(); // async, non-blocking
     }
 
-    const getPw = () => localStorage.getItem(KEYS().PW) || DEF_PW;
-    const setPw = p => { localStorage.setItem(KEYS().PW, p); syncToSupabase(); };
+    // Password functions removed - now handled by Supabase Auth
     const getH = () => lGet(KEYS().HABITS, []);
     const svH = h => lSet(KEYS().HABITS, h);
     const getR = () => lGet(KEYS().REC, {});
@@ -202,8 +258,8 @@
     const svW = w => lSet(KEYS().WORKOUT, w);
 
     // ===== SUPABASE SYNC =====
-    // Uses a single row in `user_data` table per user (key = userId)
-    // Table schema: id (int8, auto), key (text, unique), data (jsonb), updated_at (timestamptz)
+    // Uses a single row in `user_data` table per user (user_id = UUID from Supabase Auth)
+    // Table schema: id, user_id (UUID), key (text), data (jsonb), updated_at
     let syncTimer = null;
 
     function syncToSupabase() {
@@ -212,24 +268,52 @@
         syncTimer = setTimeout(async () => {
             try {
                 const k = KEYS();
-                const payload = {};
-                for (const val of Object.values(k)) {
-                    if (val === k.AUTH || val === k.LAST_UID) continue;
-                    const stored = localStorage.getItem(val);
-                    if (stored !== null) payload[val] = stored;
-                }
+                const payload = {
+                    habits: lGet(k.HABITS, []),
+                    records: lGet(k.REC, {}),
+                    notes: lGet(k.NOTES, []),
+                    finance: lGet(k.FIN, { balance: 0, log: [], budget: { monthlyLimit: 0, categories: {} }, recurring: [] }),
+                    workouts: lGet(k.WORKOUT, [])
+                };
                 const { error } = await supabase
                     .from('user_data')
                     .upsert({
-                        key: currentUserId,
+                        user_id: currentUserId,
+                        key: currentUserId, // backward compatibility
                         data: payload,
                         updated_at: new Date().toISOString()
-                    }, { onConflict: 'key' });
+                    }, { onConflict: 'user_id' });
                 if (error) console.error('[SUPABASE] Sync error:', error.message);
             } catch (e) {
                 console.error('[SUPABASE] Sync exception:', e.message);
             }
         }, 500);
+    }
+
+    async function syncToSupabaseImmediate() {
+        if (!supabaseReady || !currentUserId) return;
+        try {
+            const k = KEYS();
+            const payload = {
+                habits: lGet(k.HABITS, []),
+                records: lGet(k.REC, {}),
+                notes: lGet(k.NOTES, []),
+                finance: lGet(k.FIN, { balance: 0, log: [], budget: { monthlyLimit: 0, categories: {} }, recurring: [] }),
+                workouts: lGet(k.WORKOUT, [])
+            };
+            const { error } = await supabase
+                .from('user_data')
+                .upsert({
+                    user_id: currentUserId,
+                    key: currentUserId,
+                    data: payload,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+            if (error) throw error;
+        } catch (e) {
+            console.error('[SUPABASE] Immediate sync exception:', e.message);
+            throw e;
+        }
     }
 
     async function syncFromSupabase() {
@@ -238,12 +322,12 @@
             const { data, error } = await supabase
                 .from('user_data')
                 .select('data')
-                .eq('key', currentUserId)
+                .eq('user_id', currentUserId)
                 .single();
 
             if (error) {
                 if (error.code === 'PGRST116') {
-                    console.log('[SUPABASE] No data found for user ' + currentUserId + ' — fresh account');
+                    console.log('[SUPABASE] No data found for user — fresh account');
                     return false;
                 }
                 console.error('[SUPABASE] Read error:', error.message);
@@ -252,11 +336,13 @@
 
             if (data && data.data) {
                 const k = KEYS();
-                for (const [key, v] of Object.entries(data.data)) {
-                    if (key === k.AUTH || key === k.LAST_UID) continue;
-                    localStorage.setItem(key, v);
-                }
-                console.log('[SUPABASE] Data loaded from cloud for user:', currentUserId);
+                const d = data.data;
+                if (d.habits) localStorage.setItem(k.HABITS, JSON.stringify(d.habits));
+                if (d.records) localStorage.setItem(k.REC, JSON.stringify(d.records));
+                if (d.notes) localStorage.setItem(k.NOTES, JSON.stringify(d.notes));
+                if (d.finance) localStorage.setItem(k.FIN, JSON.stringify(d.finance));
+                if (d.workouts) localStorage.setItem(k.WORKOUT, JSON.stringify(d.workouts));
+                console.log('[SUPABASE] Data loaded from cloud');
                 return true;
             }
             return false;
@@ -317,44 +403,80 @@
         }
     }
 
-    // ==================== AUTH ====================
+    // ==================== AUTH (SUPABASE AUTH) ====================
     async function initAuth() {
         const screen = $('login-screen'), app = $('app');
 
         // Initialize Supabase
         initSupabase();
 
-        // Check if user is already logged in this session
-        const sessionUid = sessionStorage.getItem('ht_auth_uid');
-        if (sessionUid && sessionStorage.getItem(KEYS().AUTH) === '1') {
-            currentUserId = sessionUid;
-            // Sync from cloud for this user
+        // Password recovery link (?type=recovery in hash): open "new password" modal after boot
+        let recovery = /type=recovery/.test(location.hash);
+        const openRecoveryModal = () => {
+            recovery = false;
+            history.replaceState(null, '', location.pathname + location.search);
+            $('pw-new').value = '';
+            $('pw-conf').value = '';
+            $('pw-err').textContent = '';
+            $('pw-modal').classList.remove('hidden');
+        };
+        const enterApp = async (session) => {
+            currentUserId = session.user.id;
             await syncFromSupabase();
             screen.classList.add('hidden');
             app.classList.remove('hidden');
             boot();
+            if (recovery) openRecoveryModal();
+        };
+
+        // Listen for auth state changes (registered before getSession so PASSWORD_RECOVERY isn't missed)
+        if (supabaseReady) {
+            supabase.auth.onAuthStateChange((event, session) => {
+                console.log('[AUTH] State changed:', event);
+                if (event === 'PASSWORD_RECOVERY') {
+                    recovery = true;
+                    if (booted) openRecoveryModal();
+                } else if (event === 'SIGNED_IN' && session && !booted) {
+                    // Deferred: supabase-js forbids awaiting other supabase calls inside this callback
+                    setTimeout(() => enterApp(session), 0);
+                } else if (event === 'SIGNED_OUT') {
+                    currentUserId = null;
+                    location.reload();
+                }
+            });
+        }
+
+        // Check for existing Supabase Auth session
+        const session = await getSession();
+        if (session) {
+            await enterApp(session);
             return;
         }
 
-        // Pre-fill last used ID
-        const lastUid = localStorage.getItem('ht_last_uid');
-        if (lastUid) $('login-uid').value = lastUid;
-
-        const uidInput = $('login-uid'), pwInput = $('login-pw');
-        const btn = $('login-btn'), err = $('login-err');
-        const confirmWrap = $('signup-confirm-wrap');
+        // UI Elements
+        const emailInput = $('login-email');
+        const pwInput = $('login-pw');
         const confirmPwInput = $('login-pw-confirm');
+        const displayNameInput = $('login-display-name');
+        const btn = $('login-btn');
+        const err = $('login-err');
+        const confirmWrap = $('signup-confirm-wrap');
+        const displayNameWrap = $('display-name-wrap');
+        const forgotLink = $('forgot-password-link');
         const toggleSignIn = $('login-toggle-signin');
         const toggleSignUp = $('login-toggle-signup');
 
         let authMode = 'signin';
 
+        // Toggle handlers
         if (toggleSignIn && toggleSignUp) {
             toggleSignIn.onclick = () => {
                 authMode = 'signin';
                 toggleSignIn.classList.add('active');
                 toggleSignUp.classList.remove('active');
-                confirmWrap.classList.add('hidden');
+                if (confirmWrap) confirmWrap.classList.add('hidden');
+                if (displayNameWrap) displayNameWrap.classList.add('hidden');
+                if (forgotLink) forgotLink.classList.remove('hidden');
                 btn.textContent = 'Entrar';
                 err.textContent = '';
             };
@@ -362,47 +484,62 @@
                 authMode = 'signup';
                 toggleSignUp.classList.add('active');
                 toggleSignIn.classList.remove('active');
-                confirmWrap.classList.remove('hidden');
+                if (confirmWrap) confirmWrap.classList.remove('hidden');
+                if (displayNameWrap) displayNameWrap.classList.remove('hidden');
+                if (forgotLink) forgotLink.classList.add('hidden');
                 btn.textContent = 'Criar Conta';
                 err.textContent = '';
             };
         }
 
-        const attempt = async () => {
-            const uid = uidInput.value.trim().toLowerCase();
-            const pw = pwInput.value;
+        // Forgot password handler
+        if (forgotLink) {
+            forgotLink.onclick = async (e) => {
+                e.preventDefault();
+                const email = emailInput ? emailInput.value.trim() : '';
+                if (!email || !email.includes('@')) {
+                    err.textContent = 'Digite seu email para recuperar a senha';
+                    setTimeout(() => err.textContent = '', 3000);
+                    return;
+                }
+                try {
+                    await resetPassword(email);
+                    err.style.color = '#00e676';
+                    err.textContent = 'Email de recuperação enviado! Verifique sua caixa de entrada.';
+                    setTimeout(() => { err.textContent = ''; err.style.color = ''; }, 5000);
+                } catch (e) {
+                    err.textContent = 'Erro ao enviar email: ' + translateAuthError(e.message);
+                    setTimeout(() => err.textContent = '', 3000);
+                }
+            };
+        }
 
-            if (!uid) {
-                err.textContent = 'Digite seu ID';
-                uidInput.focus();
+        // Submit handler
+        const attempt = async () => {
+            const email = emailInput ? emailInput.value.trim() : '';
+            const pw = pwInput ? pwInput.value : '';
+
+            // Validation
+            if (!email || !email.includes('@')) {
+                err.textContent = 'Digite um email válido';
+                if (emailInput) emailInput.focus();
                 setTimeout(() => err.textContent = '', 2000);
                 return;
             }
-            if (uid.length < 2) {
-                err.textContent = 'ID deve ter pelo menos 2 caracteres';
-                uidInput.focus();
-                setTimeout(() => err.textContent = '', 2000);
-                return;
-            }
-            if (!pw) {
-                err.textContent = 'Digite sua senha';
-                pwInput.focus();
+            if (!pw || pw.length < 6) {
+                err.textContent = 'Senha deve ter pelo menos 6 caracteres';
+                if (pwInput) pwInput.focus();
                 setTimeout(() => err.textContent = '', 2000);
                 return;
             }
 
             if (authMode === 'signup') {
-                const pwConfirm = confirmPwInput.value;
+                const pwConfirm = confirmPwInput ? confirmPwInput.value : '';
+                const displayName = displayNameInput ? displayNameInput.value.trim() : '';
+
                 if (pw !== pwConfirm) {
                     err.textContent = 'As senhas não coincidem';
-                    confirmPwInput.focus();
-                    setTimeout(() => err.textContent = '', 2000);
-                    return;
-                }
-                if (pw.length < 4) {
-                    err.textContent = 'A senha deve ter pelo menos 4 caracteres';
-                    pwInput.focus();
-                    setTimeout(() => err.textContent = '', 2000);
+                    if (confirmPwInput) confirmPwInput.focus();
                     return;
                 }
 
@@ -410,80 +547,39 @@
                 btn.textContent = 'Criando...';
 
                 try {
-                    if (!supabaseReady) {
-                        err.textContent = 'Supabase não conectado';
+                    const { user } = await signUpWithEmail(email, pw, displayName);
+
+                    if (user) {
+                        // Create initial user data
+                        currentUserId = user.id;
+                        const k = KEYS();
+                        localStorage.setItem(k.HABITS, '[]');
+                        localStorage.setItem(k.REC, '{}');
+                        localStorage.setItem(k.NOTES, '[]');
+                        localStorage.setItem(k.FIN, JSON.stringify({ balance: 0, log: [], budget: { monthlyLimit: 0, categories: {} }, recurring: [] }));
+                        localStorage.setItem(k.WORKOUT, '[]');
+
+                        // Sync to Supabase
+                        await syncToSupabaseImmediate();
+
+                        screen.style.opacity = '0';
+                        screen.style.transition = 'opacity .35s';
+                        setTimeout(() => {
+                            screen.classList.add('hidden');
+                            app.classList.remove('hidden');
+                            boot();
+                        }, 350);
+                    } else {
+                        // Email confirmation required
+                        err.style.color = '#00e676';
+                        err.textContent = 'Conta criada! Verifique seu email para confirmar.';
                         btn.disabled = false;
                         btn.textContent = 'Criar Conta';
-                        return;
                     }
-
-                    // Check if user already exists
-                    const { data: existingUser, error: checkError } = await supabase
-                        .from('user_data')
-                        .select('key')
-                        .eq('key', uid)
-                        .maybeSingle();
-
-                    if (checkError) {
-                        console.error('[SUPABASE] Check error:', checkError.message);
-                        err.textContent = 'Erro ao verificar ID';
-                        btn.disabled = false;
-                        btn.textContent = 'Criar Conta';
-                        return;
-                    }
-
-                    if (existingUser) {
-                        err.textContent = 'Este ID de usuário já está sendo usado';
-                        uidInput.focus();
-                        btn.disabled = false;
-                        btn.textContent = 'Criar Conta';
-                        return;
-                    }
-
-                    // Create user payload
-                    const p = `ht_${uid}_`;
-                    const payload = {
-                        [`${p}password`]: pw,
-                        [`${p}habits`]: '[]',
-                        [`${p}records`]: '{}',
-                        [`${p}notes`]: '[]',
-                        [`${p}finance`]: '{"balance":0,"log":[]}',
-                        [`${p}workouts`]: '[]'
-                    };
-
-                    const { error: insertError } = await supabase
-                        .from('user_data')
-                        .insert({
-                            key: uid,
-                            data: payload,
-                            updated_at: new Date().toISOString()
-                        });
-
-                    if (insertError) {
-                        console.error('[SUPABASE] Insert error:', insertError.message);
-                        err.textContent = 'Erro ao criar conta';
-                        btn.disabled = false;
-                        btn.textContent = 'Criar Conta';
-                        return;
-                    }
-
-                    // Success!
-                    currentUserId = uid;
-                    for (const [k, val] of Object.entries(payload)) {
-                        localStorage.setItem(k, val);
-                    }
-
-                    sessionStorage.setItem(KEYS().AUTH, '1');
-                    sessionStorage.setItem('ht_auth_uid', uid);
-                    localStorage.setItem('ht_last_uid', uid);
-
-                    screen.style.opacity = '0';
-                    screen.style.transition = 'opacity .35s';
-                    setTimeout(() => { screen.classList.add('hidden'); app.classList.remove('hidden'); boot(); }, 350);
 
                 } catch (e) {
-                    console.error('[REGISTRATION] Exception:', e.message);
-                    err.textContent = 'Erro inesperado ao criar conta';
+                    console.error('[SIGNUP] Error:', e);
+                    err.textContent = translateAuthError(e.message);
                     btn.disabled = false;
                     btn.textContent = 'Criar Conta';
                 }
@@ -493,44 +589,22 @@
                 btn.textContent = 'Entrando...';
 
                 try {
-                    if (!supabaseReady) {
-                        err.textContent = 'Supabase não conectado';
-                        btn.disabled = false;
-                        btn.textContent = 'Entrar';
-                        return;
-                    }
+                    const { user } = await signInWithEmail(email, pw);
 
-                    currentUserId = uid;
-                    const loadedFromCloud = await syncFromSupabase();
+                    currentUserId = user.id;
+                    await syncFromSupabase();
 
-                    if (!loadedFromCloud) {
-                        currentUserId = null;
-                        err.textContent = 'Usuário não encontrado';
-                        btn.disabled = false;
-                        btn.textContent = 'Entrar';
-                        return;
-                    }
-
-                    // Check password
-                    const storedPw = getPw();
-                    if (pw === storedPw) {
-                        sessionStorage.setItem(KEYS().AUTH, '1');
-                        sessionStorage.setItem('ht_auth_uid', uid);
-                        localStorage.setItem('ht_last_uid', uid);
-
-                        screen.style.opacity = '0';
-                        screen.style.transition = 'opacity .35s';
-                        setTimeout(() => { screen.classList.add('hidden'); app.classList.remove('hidden'); boot(); }, 350);
-                    } else {
-                        currentUserId = null;
-                        err.textContent = 'Senha incorreta';
-                        btn.disabled = false;
-                        btn.textContent = 'Entrar';
-                    }
+                    screen.style.opacity = '0';
+                    screen.style.transition = 'opacity .35s';
+                    setTimeout(() => {
+                        screen.classList.add('hidden');
+                        app.classList.remove('hidden');
+                        boot();
+                    }, 350);
 
                 } catch (e) {
-                    console.error('[SIGNIN] Exception:', e.message);
-                    err.textContent = 'Erro inesperado ao entrar';
+                    console.error('[SIGNIN] Error:', e);
+                    err.textContent = translateAuthError(e.message);
                     btn.disabled = false;
                     btn.textContent = 'Entrar';
                 }
@@ -538,11 +612,9 @@
         };
 
         btn.onclick = attempt;
-        pwInput.onkeydown = e => { if (e.key === 'Enter') attempt(); };
-        uidInput.onkeydown = e => { if (e.key === 'Enter') pwInput.focus(); };
-        if (confirmPwInput) {
-            confirmPwInput.onkeydown = e => { if (e.key === 'Enter') attempt(); };
-        }
+        if (pwInput) pwInput.onkeydown = e => { if (e.key === 'Enter') attempt(); };
+        if (emailInput) emailInput.onkeydown = e => { if (e.key === 'Enter' && pwInput) pwInput.focus(); };
+        if (confirmPwInput) confirmPwInput.onkeydown = e => { if (e.key === 'Enter') attempt(); };
     }
 
     // ==================== AUTO-FAIL UNCHECKED HABITS ====================
@@ -602,7 +674,10 @@
     }
 
     // ==================== BOOT ====================
+    let booted = false;
     function boot() {
+        if (booted) return;
+        booted = true;
         const n = new Date();
         $('topbar-date').textContent = `${DAYS_F[n.getDay()]}, ${n.getDate()} ${MO[n.getMonth()]} ${n.getFullYear()}`;
         initNav();
@@ -645,7 +720,11 @@
                 if (v === 'workout') renderWorkout();
             };
         });
-        $('logout-btn').onclick = () => { sessionStorage.removeItem(KEYS.AUTH); location.reload(); };
+        $('logout-btn').onclick = async () => {
+            await signOut();
+            localStorage.clear();
+            location.reload();
+        };
     }
 
     // ==================== TRACKER ====================
@@ -3283,19 +3362,47 @@
         coachMessages.push({ sender, text, time: new Date().toISOString() });
     }
 
-    // ==================== PASSWORD MODAL ====================
+    // ==================== PASSWORD MODAL (SUPABASE AUTH) ====================
     function initPwModal() {
-        document.querySelector('.sidebar-logo').ondblclick = () => {
-            $('pw-modal').classList.remove('hidden');
-            $('pw-new').value = ''; $('pw-conf').value = ''; $('pw-err').textContent = '';
-        };
-        $('pw-save').onclick = () => {
-            const np = $('pw-new').value, cp = $('pw-conf').value;
-            if (!np) { $('pw-err').textContent = 'Digite uma nova senha'; return; }
-            if (np !== cp) { $('pw-err').textContent = 'Senhas não coincidem'; return; }
-            setPw(np);
-            $('pw-modal').classList.add('hidden');
-        };
+        const logo = document.querySelector('.sidebar-logo');
+        if (logo) {
+            logo.ondblclick = () => {
+                $('pw-modal').classList.remove('hidden');
+                $('pw-new').value = '';
+                $('pw-conf').value = '';
+                $('pw-err').textContent = '';
+            };
+        }
+        const saveBtn = $('pw-save');
+        if (saveBtn) {
+            saveBtn.onclick = async () => {
+                const np = $('pw-new').value;
+                const cp = $('pw-conf').value;
+
+                if (!np || np.length < 6) {
+                    $('pw-err').textContent = 'Senha deve ter pelo menos 6 caracteres';
+                    return;
+                }
+                if (np !== cp) {
+                    $('pw-err').textContent = 'Senhas não coincidem';
+                    return;
+                }
+
+                try {
+                    saveBtn.disabled = true;
+                    saveBtn.textContent = 'Salvando...';
+                    await updatePassword(np);
+                    $('pw-modal').classList.add('hidden');
+                    // Show success feedback
+                    alert('Senha alterada com sucesso!');
+                } catch (e) {
+                    $('pw-err').textContent = 'Erro: ' + translateAuthError(e.message);
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Salvar';
+                }
+            };
+        }
     }
 
     // ==================== DASHBOARD ====================
