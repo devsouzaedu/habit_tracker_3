@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0b0b0f">
+    <title>Mensuremi - Evolua e Mensure sua vida com IA</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=13">
+</head>
+
+<body>
+
+    <!-- ===== LOGIN ===== -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <div class="login-brand">
+                <img src="public/images/logo.png" alt="Mensuremi" class="login-logo-img">
+                <h1>Mensuremi</h1>
+                <p>Evolua e Mensure sua vida com IA</p>
+            </div>
+            <form id="login-form" class="login-form" onsubmit="return false">
+                <div class="login-toggle">
+                    <button type="button" id="login-toggle-signin" class="login-toggle-btn active">Entrar</button>
+                    <button type="button" id="login-toggle-signup" class="login-toggle-btn">Criar Conta</button>
+                </div>
+
+                <div id="display-name-wrap" class="hidden">
+                    <label for="login-display-name">Seu Nome</label>
+                    <input type="text" id="login-display-name" class="input" placeholder="Ex: José Eduardo" autocomplete="name">
+                </div>
+
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" class="input" placeholder="seu@email.com" autocomplete="email" autofocus>
+
+                <label for="login-pw">Senha</label>
+                <input type="password" id="login-pw" class="input" placeholder="Min. 6 caracteres" autocomplete="current-password">
+
+                <div id="signup-confirm-wrap" class="hidden">
+                    <label for="login-pw-confirm">Confirmar Senha</label>
+                    <input type="password" id="login-pw-confirm" class="input" placeholder="Repita a senha" autocomplete="new-password">
+                </div>
+
+                <button type="submit" id="login-btn" class="btn-red">Entrar</button>
+
+                <a href="#" id="forgot-password-link" class="forgot-link">Esqueci minha senha</a>
+
+                <span id="login-err" class="err-msg"></span>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== APP ===== -->
+    <div id="app" class="app hidden">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-logo" title="Mensuremi - Evolua e Mensure sua vida com IA">
+                <img src="public/images/logo.png" alt="Mensuremi" class="sidebar-logo-img">
+            </div>
+            <nav class="sidebar-nav">
+                <button class="sidebar-btn active" data-view="tracker" title="Tracker">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                    </svg>
+                    <span>Tracker</span>
+                </button>
+                <button class="sidebar-btn" data-view="notes" title="Notas">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    <span>Notas</span>
+                </button>
+                <button class="sidebar-btn" data-view="finance" title="Finanças">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23" />
+                        <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                    </svg>
+                    <span>Finanças</span>
+                </button>
+                <button class="sidebar-btn" data-view="workout" title="Treino">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6.5 6.5a2 2 0 013 0l0 11a2 2 0 01-3 0z" />
+                        <path d="M14.5 6.5a2 2 0 013 0l0 11a2 2 0 01-3 0z" />
+                        <path d="M4 9v6" />
+                        <path d="M20 9v6" />
+                        <path d="M9 12h6" />
+                    </svg>
+                    <span>Treino</span>
+                </button>
+                <button class="sidebar-btn" data-view="dashboard" title="Dashboard">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10" />
+                        <path d="M12 20V4" />
+                        <path d="M6 20v-6" />
+                    </svg>
+                    <span>Dashboard</span>
+                </button>
+            </nav>
+            <button id="logout-btn" class="sidebar-btn logout" title="Sair">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Sair</span>
+            </button>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-wrap">
+
+            <!-- TOP BAR -->
+            <header class="topbar">
+                <span class="topbar-title" id="topbar-title">Tracker</span>
+                <span class="topbar-date" id="topbar-date"></span>
+            </header>
+
+            <!-- ===== TRACKER ===== -->
+            <section id="tracker-view" class="view">
+                <div class="toolbar">
+                    <div class="week-nav">
+                        <button id="prev-week" class="btn-icon" title="Semana anterior">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                        </button>
+                        <span id="week-range" class="week-range-text"></span>
+                        <button id="next-week" class="btn-icon" title="Próxima semana">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                        </button>
+                        <button id="today-btn" class="btn-sm">Hoje</button>
+                    </div>
+                    <button id="add-habit-btn" class="btn-red-outline">+ Novo Hábito</button>
+                </div>
+
+                <div class="progress-chart-card card">
+                    <div class="card-head">
+                        <span class="card-title">📈 Progresso Geral dos Hábitos</span>
+                        <span class="progress-subtitle" id="progress-subtitle">Últimos 30 dias</span>
+                    </div>
+                    <div class="progress-chart-wrap"><canvas id="progress-canvas"></canvas></div>
+                </div>
+
+                <!-- MOBILE: Day selector + Card list -->
+                <div id="mobile-day-nav" class="mobile-day-nav">
+                    <div id="mobile-day-strip" class="mobile-day-strip"></div>
+                </div>
+                <div id="mobile-tracker" class="mobile-tracker"></div>
+
+                <!-- DESKTOP: Grid view -->
+                <div class="tracker-card desktop-only">
+                    <div id="tracker-grid" class="tracker-grid"></div>
+                    <div id="tracker-empty" class="empty-msg hidden">
+                        <p>Nenhum hábito cadastrado</p>
+                        <span>Clique em <b>+ Novo Hábito</b> para começar</span>
+                    </div>
+                </div>
+
+                <!-- MOBILE: Empty state -->
+                <div id="mobile-tracker-empty" class="empty-msg hidden mobile-only">
+                    <p>Nenhum hábito cadastrado</p>
+                    <span>Toque em <b>+ Novo Hábito</b> para começar</span>
+                </div>
+            </section>
+
+            <!-- ===== NOTES ===== -->
+            <section id="notes-view" class="view hidden">
+                <div class="toolbar">
+                    <span class="toolbar-label">Suas notas</span>
+                    <button id="add-note-btn" class="btn-red-outline">+ Nova Nota</button>
+                </div>
+                <div id="notes-empty" class="empty-msg">
+                    <p>Nenhuma nota ainda</p>
+                    <span>Crie notas para organizar suas ideias</span>
+                </div>
+                <div id="notes-grid" class="notes-grid"></div>
+            </section>
+
+            <!-- ===== FINANCE ===== -->
+            <section id="finance-view" class="view hidden">
+                <!-- Header Toolbar: Navigation by Month/Year & Actions -->
+                <div class="fin-header-row">
+                    <div class="fin-period-selector">
+                        <button id="fin-prev-month-btn" class="btn-icon" title="Mês anterior">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6" />
+                            </svg>
+                        </button>
+                        <div class="fin-month-display">
+                            <span id="fin-current-month-label" class="fin-month-title">Mês</span>
+                            <button id="fin-today-month-btn" class="fin-pill-btn">Mês Atual</button>
+                        </div>
+                        <button id="fin-next-month-btn" class="btn-icon" title="Próximo mês">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="fin-header-actions">
+                        <button id="fin-quick-budget-btn" class="btn-ghost-sm" title="Ajustar Metas">🎯 Metas</button>
+                        <button id="fin-open-tx-modal-btn" class="btn-red">+ Nova Transação</button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards: Saldo Total, Receitas do Mês, Despesas do Mês, Balanço do Mês -->
+                <div class="fin-kpis-grid">
+                    <div class="fin-kpi-card">
+                        <div class="fin-kpi-head">
+                            <span class="fin-kpi-label">Saldo Acumulado</span>
+                            <span class="fin-kpi-icon">💰</span>
+                        </div>
+                        <div class="fin-kpi-val" id="fin-kpi-total-balance">R$ 0,00</div>
+                        <span class="fin-kpi-sub">Total líquido geral</span>
+                    </div>
+
+                    <div class="fin-kpi-card">
+                        <div class="fin-kpi-head">
+                            <span class="fin-kpi-label">Receitas no Mês</span>
+                            <span class="fin-kpi-icon">📈</span>
+                        </div>
+                        <div class="fin-kpi-val pos" id="fin-kpi-month-income">+ R$ 0,00</div>
+                        <span class="fin-kpi-sub" id="fin-kpi-income-count">0 entradas</span>
+                    </div>
+
+                    <div class="fin-kpi-card">
+                        <div class="fin-kpi-head">
+                            <span class="fin-kpi-label">Despesas no Mês</span>
+                            <span class="fin-kpi-icon">📉</span>
+                        </div>
+                        <div class="fin-kpi-val neg" id="fin-kpi-month-expense">- R$ 0,00</div>
+                        <span class="fin-kpi-sub" id="fin-kpi-expense-count">0 saídas</span>
+                    </div>
+
+                    <div class="fin-kpi-card">
+                        <div class="fin-kpi-head">
+                            <span class="fin-kpi-label">Resultado do Mês</span>
+                            <span class="fin-kpi-icon">⚖️</span>
+                        </div>
+                        <div class="fin-kpi-val" id="fin-kpi-month-net">R$ 0,00</div>
+                        <span class="fin-kpi-sub" id="fin-kpi-net-status">Equilibrado</span>
+                    </div>
+                </div>
+
+                <!-- Monthly Budget Hero Bar -->
+                <div class="fin-budget-banner card">
+                    <div class="fin-budget-banner-header">
+                        <div class="fin-budget-banner-info">
+                            <span class="fin-budget-tag">🎯 PLANEJAMENTO DO MÊS</span>
+                            <div class="fin-budget-values">
+                                <span class="fin-budget-spent" id="fin-budget-spent-txt">Gasto: R$ 0,00</span>
+                                <span class="fin-budget-divider">/</span>
+                                <span class="fin-budget-limit" id="fin-budget-limit-txt">Meta: Não definida</span>
+                            </div>
+                        </div>
+                        <div class="fin-budget-pct-badge" id="fin-budget-pct-badge">0%</div>
+                    </div>
+                    <div class="fin-progress-track">
+                        <div class="fin-progress-bar" id="fin-budget-progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="fin-budget-banner-foot">
+                        <span id="fin-budget-remaining-txt">Defina um teto para acompanhar seus gastos</span>
+                        <button id="fin-edit-budget-link" class="fin-link-btn">Definir Orçamento ⚙️</button>
+                    </div>
+                </div>
+
+                <!-- Sub-Navigation Tabs inside Finance -->
+                <div class="fin-tabs">
+                    <button class="fin-tab active" data-fintab="transactions">📝 Transações do Mês</button>
+                    <button class="fin-tab" data-fintab="budget">📊 Metas por Categoria</button>
+                    <button class="fin-tab" data-fintab="recurring">🔁 Contas Fixas & Recorrentes</button>
+                </div>
+
+                <!-- TAB 1: TRANSACTIONS -->
+                <div id="fintab-transactions" class="fin-tab-content">
+                    <!-- Distribution Visual Summary -->
+                    <div id="fin-category-dist-wrap" class="card fin-dist-card hidden">
+                        <div class="card-head">
+                            <span class="card-title">Distribuição de Gastos</span>
+                            <span class="card-sub" id="fin-dist-total-txt">Total gasto: R$ 0,00</span>
+                        </div>
+                        <div class="fin-dist-body">
+                            <div class="fin-donut-container" id="fin-donut-container"></div>
+                            <div class="fin-dist-legend" id="fin-dist-legend"></div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Toolbar -->
+                    <div class="fin-filter-bar">
+                        <div class="fin-search-box">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="fin-search-input" class="input" placeholder="Buscar lançamentos...">
+                        </div>
+                        <div class="fin-filter-group">
+                            <select id="fin-filter-type" class="input fin-select">
+                                <option value="all">Todos os Tipos</option>
+                                <option value="out">Somente Saídas</option>
+                                <option value="in">Somente Entradas</option>
+                            </select>
+                            <select id="fin-filter-cat" class="input fin-select">
+                                <option value="all">Todas as Categorias</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Transaction List -->
+                    <div class="card">
+                        <div class="card-head">
+                            <span class="card-title" id="fin-list-title">Extrato do Mês</span>
+                            <span class="card-sub" id="fin-list-count">0 registros</span>
+                        </div>
+                        <div id="fin-tx-list" class="fin-tx-list"></div>
+                        <div id="fin-empty-state" class="empty-msg hidden">
+                            <p>Nenhuma transação encontrada</p>
+                            <span>Clique em <b>+ Nova Transação</b> para adicionar entradas ou despesas neste mês.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: BUDGET PLANNER -->
+                <div id="fintab-budget" class="fin-tab-content hidden">
+                    <div class="fin-budget-top card">
+                        <div class="fin-budget-top-info">
+                            <h3>🎯 Metas de Gastos por Categoria</h3>
+                            <p>Monitore o limite de cada categoria para garantir que suas despesas permaneçam dentro do planejado.</p>
+                        </div>
+                        <button id="fin-open-budget-config-btn" class="btn-red-outline">⚙️ Ajustar Limites</button>
+                    </div>
+
+                    <div class="fin-budget-categories-grid" id="fin-budget-categories-grid"></div>
+                </div>
+
+                <!-- TAB 3: RECURRING BILLS -->
+                <div id="fintab-recurring" class="fin-tab-content hidden">
+                    <div class="fin-recurring-top card">
+                        <div class="fin-recurring-info">
+                            <h3>🔁 Contas Fixas & Recorrentes</h3>
+                            <p>Cadastre contas mensais previsíveis (aluguel, internet, condomínio, salário). Lance-as no extrato do mês com apenas 1 clique.</p>
+                        </div>
+                        <button id="fin-add-recurring-btn" class="btn-red">+ Nova Conta Fixa</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <span class="card-title">Suas Contas Recorrentes</span>
+                            <span class="card-sub" id="fin-recurring-count">0 cadastradas</span>
+                        </div>
+                        <div id="fin-recurring-list" class="fin-recurring-list"></div>
+                        <div id="fin-recurring-empty" class="empty-msg hidden">
+                            <p>Nenhuma conta recorrente cadastrada</p>
+                            <span>Adicione gastos fixos ou recebimentos mensais recorrentes.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== WORKOUT ===== -->
+            <section id="workout-view" class="view hidden">
+
+                <!-- Workout Tabs -->
+                <div class="wo-tabs">
+                    <button class="wo-tab active" data-wo-tab="treino">🏋️ Treino</button>
+                    <button class="wo-tab" data-wo-tab="coach">👊 Coach</button>
+                </div>
+
+                <!-- TAB: TREINO -->
+                <div id="wo-tab-treino" class="wo-tab-content">
+                    <!-- Active Workout Panel -->
+                    <div id="wo-active-panel" class="wo-active-panel hidden">
+                        <div class="wo-active-header">
+                            <div class="wo-active-left">
+                                <span class="wo-active-label">🏋️ TREINO EM ANDAMENTO</span>
+                                <span class="wo-active-timer" id="wo-timer">00:00:00</span>
+                            </div>
+                            <div class="wo-active-actions">
+                                <button id="wo-add-exercise-btn" class="btn-red-outline">+ Exercício</button>
+                                <button id="wo-finish-btn" class="btn-red">Finalizar</button>
+                            </div>
+                        </div>
+                        <div class="wo-muscles-selected" id="wo-muscles-selected"></div>
+                        <div class="wo-exercise-list" id="wo-exercise-list"></div>
+                    </div>
+
+                    <!-- Start Workout -->
+                    <div id="wo-start-panel" class="wo-start-panel">
+                        <div class="wo-hero">
+                            <div class="wo-hero-icon">💪</div>
+                            <h2>Registrar Treino</h2>
+                            <p>Selecione os músculos que vai treinar e inicie</p>
+                        </div>
+
+                        <div class="wo-split-shortcuts">
+                            <span class="wo-split-label">Atalhos PPL:</span>
+                            <button class="wo-split-btn" data-split="push">🅿️ Push</button>
+                            <button class="wo-split-btn" data-split="pull">🔙 Pull</button>
+                            <button class="wo-split-btn" data-split="legs">🦵 Legs</button>
+                        </div>
+
+                        <div class="wo-muscle-grid" id="wo-muscle-grid"></div>
+
+                        <button id="wo-start-btn" class="wo-start-btn" disabled>▶ Iniciar Treino</button>
+                    </div>
+
+                    <!-- Workout History -->
+                    <div class="wo-history-section">
+                        <div class="wo-history-header">
+                            <span class="card-title">📋 HISTÓRICO DE TREINOS</span>
+                            <span class="wo-history-count" id="wo-history-count"></span>
+                        </div>
+                        <div id="wo-history" class="wo-history"></div>
+                        <div id="wo-history-empty" class="empty-msg-sm">Nenhum treino registrado ainda</div>
+                    </div>
+                </div>
+
+                <!-- TAB: COACH -->
+                <div id="wo-tab-coach" class="wo-tab-content hidden">
+                    <div class="coach-container">
+                        <!-- Coach Selection Screen (Gamified HUD) -->
+                        <div class="coach-selector-hud">
+                            <div class="hud-title">SELECIONE SEU COACH</div>
+                            <div class="coach-cards-grid">
+                                <div class="coach-card-item active" data-coach-id="vegeta">
+                                    <div class="coach-card-portrait">
+                                        <img src="public/images/vegeta_png.png" alt="Vegeta">
+                                    </div>
+                                    <div class="coach-card-badge bg-vegeta">HARDCORE</div>
+                                    <div class="coach-card-meta">
+                                        <span class="coach-card-name">Vegeta</span>
+                                        <span class="coach-card-spec">Saiyajin</span>
+                                    </div>
+                                </div>
+                                <div class="coach-card-item" data-coach-id="kratos">
+                                    <div class="coach-card-portrait">
+                                        <img src="public/images/kratos.png" alt="Kratos">
+                                    </div>
+                                    <div class="coach-card-badge bg-kratos">DEUS</div>
+                                    <div class="coach-card-meta">
+                                        <span class="coach-card-name">Kratos</span>
+                                        <span class="coach-card-spec">Espartano</span>
+                                    </div>
+                                </div>
+                                <div class="coach-card-item" data-coach-id="rocky">
+                                    <div class="coach-card-portrait">
+                                        <img src="public/images/Rocky_balboa.jpeg" alt="Rocky">
+                                    </div>
+                                    <div class="coach-card-badge bg-rocky">CAMPEÃO</div>
+                                    <div class="coach-card-meta">
+                                        <span class="coach-card-name">Rocky B.</span>
+                                        <span class="coach-card-spec">Boxeador</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coach Header -->
+                        <div class="coach-header coach-theme-vegeta" id="active-coach-header">
+                            <div class="coach-avatar-wrap">
+                                <img src="public/images/vegeta_png.png" alt="Vegeta" class="coach-avatar"
+                                    id="coach-avatar">
+                                <div class="coach-status-dot"></div>
+                            </div>
+                            <div class="coach-info">
+                                <div class="coach-name" id="coach-name">Vegeta</div>
+                                <div class="coach-title" id="coach-title">Príncipe dos Saiyajins • Personal Trainer</div>
+                                <div class="coach-level" id="coach-level">
+                                    <span class="coach-power-icon" id="coach-power-icon">⚡</span>
+                                    <span id="coach-power-text">Poder de luta: OVER 9000!</span>
+                                </div>
+                            </div>
+                            <!-- Gamified Stats HUD -->
+                            <div class="coach-stats-hud">
+                                <div class="stat-bar-row">
+                                    <span class="stat-label">Intensidade:</span>
+                                    <div class="stat-bar-outer">
+                                        <div class="stat-bar-inner intensity-bar" id="intensity-bar" style="width: 95%"></div>
+                                    </div>
+                                </div>
+                                <div class="stat-bar-row">
+                                    <span class="stat-label">Paciência:</span>
+                                    <div class="stat-bar-outer">
+                                        <div class="stat-bar-inner patience-bar" id="patience-bar" style="width: 5%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Chat Area -->
+                        <div class="coach-chat" id="coach-chat">
+                            <!-- Messages will be rendered here -->
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="coach-quick-actions" id="coach-quick-actions">
+                            <button class="coach-quick-btn" data-action="treino-push">🅿️ Treino Push</button>
+                            <button class="coach-quick-btn" data-action="treino-pull">🔙 Treino Pull</button>
+                            <button class="coach-quick-btn" data-action="treino-legs">🦵 Treino Legs</button>
+                            <button class="coach-quick-btn" data-action="motivacao">🔥 Me motive!</button>
+                            <button class="coach-quick-btn" data-action="aquecimento">♨️ Aquecimento</button>
+                            <button class="coach-quick-btn" data-action="descanso">⏱️ Tempo de descanso</button>
+                        </div>
+
+                        <!-- Input -->
+                        <div class="coach-input-wrap" id="coach-input-wrap">
+                            <div class="coach-input-header">Escrever Mensagem</div>
+                            <button id="coach-input-close" class="coach-input-close-btn" type="button">✕</button>
+                            <textarea id="coach-input" class="coach-input" placeholder="Pergunte ao Vegeta..." autocomplete="off" rows="1"></textarea>
+                            <button id="coach-send" class="coach-send-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ===== DASHBOARD ===== -->
+            <section id="dashboard-view" class="view hidden">
+                <div class="toolbar">
+                    <span class="toolbar-label">Análise de desempenho</span>
+                    <div class="period-pills">
+                        <button class="pill active" data-period="week">Semana</button>
+                        <button class="pill" data-period="month">Mês</button>
+                        <button class="pill" data-period="all">Tudo</button>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat"><span class="stat-num" id="s-wins">0</span><span class="stat-lbl">Wins</span>
+                    </div>
+                    <div class="stat"><span class="stat-num" id="s-fails">0</span><span class="stat-lbl">Falhas</span>
+                    </div>
+                    <div class="stat accent"><span class="stat-num" id="s-rate">0%</span><span class="stat-lbl">Win
+                            Rate</span></div>
+                    <div class="stat"><span class="stat-num" id="s-streak">0</span><span class="stat-lbl">Melhor
+                            Streak</span></div>
+                </div>
+
+                <div class="dash-grid">
+                    <div class="card">
+                        <div class="card-head"><span class="card-title">Win vs Falha por dia</span></div>
+                        <div class="chart-wrap"><canvas id="chart-canvas"></canvas></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-head"><span class="card-title">Por hábito</span></div>
+                        <div id="habit-bars" class="habit-bars"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><span class="card-title">Detalhamento</span></div>
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>Hábito</th>
+                                <th>Wins</th>
+                                <th>Falhas</th>
+                                <th>Win Rate</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detail-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: HABIT ===== -->
+    <div id="habit-modal" class="overlay hidden">
+        <div class="modal">
+            <div class="modal-top">
+                <h3>Novo Hábito</h3><button class="close-btn" data-close="habit-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="lbl">Nome</label>
+                <input type="text" id="h-name" class="input" placeholder="Ex: Treinar, Ler, Meditar...">
+                <label class="lbl">Descrição <span class="lbl-opt">(opcional)</span></label>
+                <textarea id="h-desc" class="input textarea" rows="2"
+                    placeholder="Uma nota curta sobre este hábito..."></textarea>
+                <label class="lbl">Ícone</label>
+                <div class="picker" id="icon-picker">
+                    <button class="pick selected" data-v="🏋️">🏋️</button>
+                    <button class="pick" data-v="📚">📚</button>
+                    <button class="pick" data-v="🧘">🧘</button>
+                    <button class="pick" data-v="💧">💧</button>
+                    <button class="pick" data-v="🥗">🥗</button>
+                    <button class="pick" data-v="💤">💤</button>
+                    <button class="pick" data-v="💻">💻</button>
+                    <button class="pick" data-v="🎯">🎯</button>
+                    <button class="pick" data-v="🏃">🏃</button>
+                    <button class="pick" data-v="✍️">✍️</button>
+                    <button class="pick" data-v="🎵">🎵</button>
+                    <button class="pick" data-v="🧠">🧠</button>
+                    <button class="pick" data-v="💰">💰</button>
+                    <button class="pick" data-v="🚫">🚫</button>
+                    <button class="pick" data-v="⚡">⚡</button>
+                    <button class="pick" data-v="🔥">🔥</button>
+                </div>
+                <label class="lbl">Cor</label>
+                <div class="picker" id="color-picker">
+                    <button class="cdot selected" data-v="#e6002a" style="background:#e6002a"></button>
+                    <button class="cdot" data-v="#ff3366" style="background:#ff3366"></button>
+                    <button class="cdot" data-v="#ff6600" style="background:#ff6600"></button>
+                    <button class="cdot" data-v="#ffcc00" style="background:#ffcc00"></button>
+                    <button class="cdot" data-v="#00e676" style="background:#00e676"></button>
+                    <button class="cdot" data-v="#00b0ff" style="background:#00b0ff"></button>
+                    <button class="cdot" data-v="#9933ff" style="background:#9933ff"></button>
+                    <button class="cdot" data-v="#ff0099" style="background:#ff0099"></button>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="habit-modal">Cancelar</button>
+                <button id="h-save" class="btn-red">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: DELETE ===== -->
+    <div id="del-modal" class="overlay hidden">
+        <div class="modal modal-narrow">
+            <div class="modal-top">
+                <h3>Excluir hábito</h3><button class="close-btn" data-close="del-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>Excluir <b id="del-name"></b>? Todos os registros serão perdidos.</p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="del-modal">Cancelar</button>
+                <button id="del-confirm" class="btn-fail">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: NOTE ===== -->
+    <div id="note-modal" class="overlay hidden">
+        <div class="modal">
+            <div class="modal-top">
+                <h3 id="note-modal-title">Nova Nota</h3><button class="close-btn" data-close="note-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="lbl">Título</label>
+                <input type="text" id="n-title" class="input" placeholder="Título">
+                <label class="lbl">Conteúdo</label>
+                <textarea id="n-content" class="input textarea" rows="8" placeholder="Escreva aqui..."></textarea>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="note-modal">Cancelar</button>
+                <button id="n-save" class="btn-red">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: PASSWORD ===== -->
+    <div id="pw-modal" class="overlay hidden">
+        <div class="modal modal-narrow">
+            <div class="modal-top">
+                <h3>Alterar Senha</h3><button class="close-btn" data-close="pw-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <label class="lbl">Nova senha</label>
+                <input type="password" id="pw-new" class="input" placeholder="Nova senha">
+                <label class="lbl">Confirmar</label>
+                <input type="password" id="pw-conf" class="input" placeholder="Confirme">
+                <span id="pw-err" class="err-msg"></span>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="pw-modal">Cancelar</button>
+                <button id="pw-save" class="btn-red">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: EXERCISE PICKER ===== -->
+    <div id="exercise-modal" class="overlay hidden">
+        <div class="modal modal-wide">
+            <div class="modal-top">
+                <h3>Adicionar Exercício</h3><button class="close-btn" data-close="exercise-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="ex-search" class="input" placeholder="Buscar exercício...">
+                <div id="ex-muscle-tabs" class="ex-muscle-tabs"></div>
+                <div id="ex-list" class="ex-list"></div>
+                <div class="ex-custom-row">
+                    <input type="text" id="ex-custom-name" class="input" placeholder="Exercício personalizado...">
+                    <button id="ex-custom-add" class="btn-red-outline">+ Adicionar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: WORKOUT DETAIL ===== -->
+    <div id="wo-detail-modal" class="overlay hidden">
+        <div class="modal modal-wide">
+            <div class="modal-top">
+                <h3 id="wo-detail-title">Detalhes do Treino</h3><button class="close-btn"
+                    data-close="wo-detail-modal">✕</button>
+            </div>
+            <div class="modal-body" id="wo-detail-body"></div>
+            <div class="modal-foot">
+                <button id="wo-detail-del" class="btn-fail">Excluir Treino</button>
+                <button class="btn-ghost" data-close="wo-detail-modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: FINANCE TRANSACTION ===== -->
+    <div id="fin-tx-modal" class="overlay hidden">
+        <div class="modal">
+            <div class="modal-top">
+                <h3 id="fin-tx-modal-title">Nova Transação</h3>
+                <button class="close-btn" data-close="fin-tx-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="fin-tx-id">
+                <div class="fin-type-toggle">
+                    <button type="button" id="fin-type-btn-out" class="fin-type-btn active" data-fintype="out">− Despesa (Saída)</button>
+                    <button type="button" id="fin-type-btn-in" class="fin-type-btn" data-fintype="in">+ Receita (Entrada)</button>
+                </div>
+
+                <div>
+                    <label class="lbl">Valor (R$)</label>
+                    <input type="number" id="fin-tx-val" class="input" placeholder="0,00" step="0.01" min="0.01" required>
+                </div>
+
+                <div>
+                    <label class="lbl">Descrição</label>
+                    <input type="text" id="fin-tx-desc" class="input" placeholder="Ex: Supermercado, Salário, Uber..." autocomplete="off">
+                </div>
+
+                <div class="fin-row-2col">
+                    <div>
+                        <label class="lbl">Categoria</label>
+                        <select id="fin-tx-cat" class="input"></select>
+                    </div>
+                    <div>
+                        <label class="lbl">Data</label>
+                        <input type="date" id="fin-tx-date" class="input">
+                    </div>
+                </div>
+
+                <div class="fin-row-2col">
+                    <div>
+                        <label class="lbl">Forma de Pagamento</label>
+                        <select id="fin-tx-method" class="input">
+                            <option value="pix">⚡ Pix</option>
+                            <option value="cartao_credito">💳 Cartão de Crédito</option>
+                            <option value="cartao_debito">💳 Cartão de Débito</option>
+                            <option value="dinheiro">💵 Dinheiro</option>
+                            <option value="boleto">📄 Boleto</option>
+                            <option value="transferencia">🏦 Transferência</option>
+                            <option value="outro">🔄 Outro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="lbl">Situação</label>
+                        <select id="fin-tx-status" class="input">
+                            <option value="paid">✅ Pago / Recebido</option>
+                            <option value="pending">⏳ Pendente / Agendado</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="fin-tx-modal">Cancelar</button>
+                <button id="fin-tx-save-btn" class="btn-red">Salvar Transação</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: FINANCE BUDGET CONFIG ===== -->
+    <div id="fin-budget-modal" class="overlay hidden">
+        <div class="modal modal-wide">
+            <div class="modal-top">
+                <h3>🎯 Planejador de Orçamento Mensal</h3>
+                <button class="close-btn" data-close="fin-budget-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="lbl">Teto / Limite Geral de Gastos do Mês (R$)</label>
+                    <input type="number" id="fin-budget-global-input" class="input" placeholder="Ex: 3500.00" step="50" min="0">
+                    <span class="fin-input-hint">Valor máximo total planejado para despesas no mês. Deixe 0 para desativar.</span>
+                </div>
+
+                <div class="fin-modal-divider"></div>
+
+                <div>
+                    <label class="lbl">Limites por Categoria de Despesa (R$)</label>
+                    <p class="fin-input-hint" style="margin-bottom: 8px;">Defina metas específicas para as categorias que deseja controlar de perto:</p>
+                    <div id="fin-budget-cats-inputs" class="fin-budget-inputs-grid"></div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="fin-budget-modal">Cancelar</button>
+                <button id="fin-budget-save-btn" class="btn-red">Salvar Orçamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: RECURRING BILL ===== -->
+    <div id="fin-recurring-modal" class="overlay hidden">
+        <div class="modal">
+            <div class="modal-top">
+                <h3 id="fin-recurring-modal-title">Nova Conta Recorrente</h3>
+                <button class="close-btn" data-close="fin-recurring-modal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="fin-rec-id">
+                <div class="fin-type-toggle">
+                    <button type="button" id="fin-rec-btn-out" class="fin-type-btn active" data-rectype="out">− Despesa Fixa</button>
+                    <button type="button" id="fin-rec-btn-in" class="fin-type-btn" data-rectype="in">+ Receita Recorrente</button>
+                </div>
+
+                <div>
+                    <label class="lbl">Descrição</label>
+                    <input type="text" id="fin-rec-desc" class="input" placeholder="Ex: Aluguel, Internet, Academia, Salário..." autocomplete="off">
+                </div>
+
+                <div class="fin-row-2col">
+                    <div>
+                        <label class="lbl">Valor Previsto (R$)</label>
+                        <input type="number" id="fin-rec-val" class="input" placeholder="0,00" step="0.01" min="0.01">
+                    </div>
+                    <div>
+                        <label class="lbl">Dia do Vencimento</label>
+                        <input type="number" id="fin-rec-day" class="input" placeholder="ex: 10" min="1" max="31" value="5">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="lbl">Categoria</label>
+                    <select id="fin-rec-cat" class="input"></select>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn-ghost" data-close="fin-recurring-modal">Cancelar</button>
+                <button id="fin-rec-save-btn" class="btn-red">Salvar Conta Fixa</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="supabase-config.js"></script>
+    <script src="app.js?v=14"></script>
+</body>
+
+</html>

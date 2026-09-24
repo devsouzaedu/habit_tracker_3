@@ -61,6 +61,7 @@ const server = http.createServer((req, res) => {
     // ===== STATIC FILES =====
     let filePath = req.url.split('?')[0]; // strip query params
     if (filePath === '/') filePath = '/index.html';
+    if (filePath === '/app' || filePath === '/app/') filePath = '/app.html';
 
     const fullPath = path.join(STATIC_DIR, filePath);
 
@@ -105,5 +106,5 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log('');
 
     // Open browser automatically
-    exec(`start http://localhost:${PORT}`);
+    exec(`start http://localhost:${PORT}/app`);
 });

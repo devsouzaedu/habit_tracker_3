@@ -200,7 +200,7 @@
     async function resetPassword(email) {
         if (!supabaseReady) throw new Error('Supabase não conectado');
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin
+            redirectTo: window.location.origin + '/app'
         });
         if (error) throw error;
     }
