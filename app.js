@@ -178,7 +178,10 @@
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            options: { data: { display_name: displayName } }
+            options: {
+                data: { display_name: displayName },
+                emailRedirectTo: window.location.origin + '/app'
+            }
         });
         if (error) throw error;
         return data;
@@ -547,9 +550,10 @@
                 btn.textContent = 'Criando...';
 
                 try {
-                    const { user } = await signUpWithEmail(email, pw, displayName);
+                    const { user, session } = await signUpWithEmail(email, pw, displayName);
 
-                    if (user) {
+                    // Sem sessão = confirmação por email pendente (o RLS bloqueia gravar antes disso)
+                    if (user && session) {
                         // Create initial user data
                         currentUserId = user.id;
                         const k = KEYS();
