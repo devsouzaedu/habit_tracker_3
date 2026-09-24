@@ -1,9 +1,9 @@
 @echo off
-title Sistema Integrado de Gestão de José Eduardo, versão b1,0.7
+title Mensuremi - Evolua e Mensure sua vida com IA
 color 0C
 echo.
 echo   ============================================================
-echo       Sistema Integrado de Gestão de José Eduardo, versão b1,0.7
+echo       Mensuremi - Evolua e Mensure sua vida com IA
 echo   ============================================================
 echo.
 
